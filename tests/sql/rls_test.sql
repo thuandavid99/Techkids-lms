@@ -1,0 +1,168 @@
+-- =====================================================================
+-- tests/sql/rls_test.sql — KIỂM THỬ PHÂN QUYỀN + NỘP/CHẤM BÀI (dành cho lập trình viên)
+-- KHÔNG chạy trên Supabase thật (file tạo người dùng giả trong auth.users).
+-- Chạy trên Postgres thử nghiệm sau 00_supabase_stub + 001..004 + seed.
+-- Mỗi kiểm tra in "OK ..." hoặc dừng với lỗi "FAIL ...".
+-- =====================================================================
+\set ON_ERROR_STOP 1
+begin;
+
+-- Người dùng giả
+insert into auth.users(id, email) values
+ ('00000000-0000-0000-0000-0000000000a1','thay@x.vn'),
+ ('00000000-0000-0000-0000-0000000000b1','hs001@x.vn'),
+ ('00000000-0000-0000-0000-0000000000b2','hs002@x.vn');
+insert into profiles(id, ma_hs, ho_ten, vai_tro, must_change_password) values
+ ('00000000-0000-0000-0000-0000000000a1','thaythuan','Thầy Thuận','giao_vien', false);
+insert into profiles(id, ma_hs, ho_ten, vai_tro, class_id) values
+ ('00000000-0000-0000-0000-0000000000b1','HS001','Nguyễn An','hoc_sinh',(select id from classes where ten_lop='6A1')),
+ ('00000000-0000-0000-0000-0000000000b2','HS002','Trần Bình','hoc_sinh',(select id from classes where ten_lop='6A2'));
+
+create temp table t_ctx as select
+  (select id from classes where ten_lop='6A1') c1,
+  (select a.id from assignments a where a.ma='7.1') a71,
+  (select a.id from assignments a where a.ma='10.1') a101;
+grant select on t_ctx to authenticated, service_role, anon;
+
+-- ---------- 1. Học sinh chỉ thấy hồ sơ của mình ----------
+set local role authenticated;
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000b1', true);
+do $$ begin
+  if (select count(*) from profiles) <> 1 then raise exception 'FAIL: HS thấy hồ sơ người khác'; end if;
+  raise notice 'OK 1: HS chỉ thấy hồ sơ của mình';
+end $$;
+
+-- ---------- 2. HS chỉ thấy buổi đã mở; không thấy buổi bị ẩn ----------
+do $$ declare n_all int; n_seen int; begin
+  select count(*) into n_seen from lessons;
+  reset role; select count(*) into n_all from lessons; set local role authenticated;
+  if n_seen = 0 or n_seen >= n_all then raise exception 'FAIL: HS thấy % / % buổi', n_seen, n_all; end if;
+  raise notice 'OK 2: HS thấy %/% buổi (buổi chưa mở bị ẩn)', n_seen, n_all;
+end $$;
+
+-- ---------- 3. HS không thể ghi thẳng bảng submissions ----------
+do $$ begin
+  begin
+    insert into submissions(assignment_id, student_id, code_text) select a71, auth.uid(), 'x' from t_ctx;
+    raise exception 'FAIL: HS ghi thẳng được submissions';
+  exception when insufficient_privilege then raise notice 'OK 3: HS không ghi thẳng được bài nộp';
+  end;
+end $$;
+
+-- ---------- 4. HS không gọi được hs_nop_bai (chỉ server) ----------
+do $$ begin
+  begin
+    perform hs_nop_bai(auth.uid(), (select a71 from t_ctx), 'print(1)', null, null, null, null);
+    raise exception 'FAIL: HS gọi được hs_nop_bai';
+  exception when insufficient_privilege then raise notice 'OK 4: hs_nop_bai bị chặn với HS';
+  end;
+end $$;
+
+-- ---------- 5. Server nộp bài: lần đầu, nộp lại giữ nop_luc_dau ----------
+reset role;
+set local role service_role;
+do $$ declare r jsonb; r2 jsonb; s record; begin
+  r := hs_nop_bai('00000000-0000-0000-0000-0000000000b1', (select a71 from t_ctx), 'print(1)', null, null, null, null);
+  if not (r->>'ok')::boolean then raise exception 'FAIL 5a: %', r; end if;
+  select * into s from submissions where id = (r->>'submission_id')::uuid;
+  perform pg_sleep(0.01);
+  r2 := hs_nop_bai('00000000-0000-0000-0000-0000000000b1', (select a71 from t_ctx), 'print(2)', null, null, null, null);
+  if (r2->>'so_lan')::int <> 2 then raise exception 'FAIL 5b: so_lan %', r2; end if;
+  if (select nop_luc_dau from submissions where id = s.id) <> s.nop_luc_dau then raise exception 'FAIL 5c: đổi nop_luc_dau'; end if;
+  if (select count(*) from submissions where assignment_id = s.assignment_id and student_id = s.student_id) <> 1 then raise exception 'FAIL 5d'; end if;
+  raise notice 'OK 5: nộp lại ghi đè 1 dòng, giữ giờ nộp lần đầu';
+end $$;
+
+-- ---------- 6. HS lớp khác không nộp được bài của lớp chưa mở ----------
+do $$ declare r jsonb; begin
+  r := hs_nop_bai('00000000-0000-0000-0000-0000000000b2', (select a101 from t_ctx), 'x', null, null, null, null);
+  if (r->>'ok')::boolean then raise exception 'FAIL 6: nộp được bài chưa mở'; end if;
+  raise notice 'OK 6: chặn nộp bài chưa mở (%)', r->>'loi';
+end $$;
+
+-- ---------- 7. Thầy chấm; xung đột khi HS nộp bản mới; khóa sau khi chấm ----------
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000a1', true);
+do $$ declare sid uuid; r jsonb; begin
+  select id into sid from submissions where student_id = '00000000-0000-0000-0000-0000000000b1';
+  r := gv_luu_diem(sid, 9, 'Tốt', 'cham', now() - interval '1 hour', false, null);
+  if not coalesce((r->>'xung_dot')::boolean,false) then raise exception 'FAIL 7a: không báo xung đột %', r; end if;
+  r := gv_luu_diem(sid, 9, 'Tốt', 'cham', now(), false, null);
+  if not (r->>'ok')::boolean then raise exception 'FAIL 7b %', r; end if;
+  r := gv_luu_diem(sid, 8.5, 'Sửa điểm', 'cham', now(), false, null);
+  if not exists (select 1 from audit_log where hanh_dong = 'sua_diem') then raise exception 'FAIL 7c: không ghi nhật ký'; end if;
+  if not exists (select 1 from notifications where user_id = '00000000-0000-0000-0000-0000000000b1' and loai = 'da_cham') then raise exception 'FAIL 7d: không thông báo'; end if;
+  raise notice 'OK 7: cảnh báo bản mới, chấm, ghi nhật ký sửa điểm, thông báo HS';
+end $$;
+reset role;
+set local role service_role;
+do $$ declare r jsonb; begin
+  r := hs_nop_bai('00000000-0000-0000-0000-0000000000b1', (select a71 from t_ctx), 'print(3)', null, null, null, null);
+  if (r->>'ok')::boolean then raise exception 'FAIL 7e: nộp được khi đã chấm'; end if;
+  raise notice 'OK 7e: bài đã chấm bị khóa';
+end $$;
+
+-- ---------- 8. HS không thấy bài nộp/cờ của bạn; view chỉ trả dòng của mình ----------
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000b2', true);
+do $$ begin
+  if exists (select 1 from submissions) then raise exception 'FAIL 8a: HS2 thấy bài nộp của HS1'; end if;
+  if exists (select 1 from v_bai_hoc_sinh where student_id <> auth.uid()) then raise exception 'FAIL 8b'; end if;
+  if (select count(*) from ds_ban_cung_lop()) <> 1 then raise exception 'FAIL 8c'; end if;
+  raise notice 'OK 8: HS không thấy dữ liệu bạn khác';
+end $$;
+
+-- ---------- 9. Cờ "Em chưa làm được" → thông báo thầy ----------
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000b1', true);
+do $$ declare aid uuid; begin
+  select a.id into aid from assignments a where a.ma = '8.1';
+  if aid is null or not hs_thay_bai_tap(aid) then raise notice 'BỎ QUA 9: bài 8.1 chưa mở theo ngày mẫu'; return; end if;
+  insert into student_flags(assignment_id, student_id, chua_lam_duoc, ghi_chu, danh_dau_luc) values (aid, auth.uid(), true, 'Em kẹt ở if', now());
+  raise notice 'OK 9a: HS tích được cờ';
+end $$;
+reset role;
+do $$ begin
+  if exists (select 1 from student_flags) and not exists (select 1 from notifications where loai = 'chua_lam_duoc') then raise exception 'FAIL 9b'; end if;
+  raise notice 'OK 9b: thông báo thầy khi HS báo chưa làm được';
+end $$;
+
+-- ---------- 10. anon không đọc được gì ----------
+set local role anon;
+do $$ begin
+  if exists (select 1 from lessons) or exists (select 1 from profiles) then raise exception 'FAIL 10'; end if;
+  raise notice 'OK 10: người chưa đăng nhập không đọc được dữ liệu';
+end $$;
+
+-- ---------- 11. Thông báo tự động cho học sinh (không cần cron) ----------
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000b1', true);
+do $$ begin
+  perform hs_tao_thong_bao_tu_dong();
+  perform hs_tao_thong_bao_tu_dong(); -- gọi lại không tạo trùng
+  if (select count(*) from notifications where loai = 'bai_moi') <> (select count(distinct khoa_gop) from notifications where loai = 'bai_moi') then raise exception 'FAIL 11: trùng thông báo'; end if;
+  raise notice 'OK 11: sinh thông báo tự động, không trùng (% thông báo bài mới)', (select count(*) from notifications where loai = 'bai_moi');
+end $$;
+
+-- ---------- 12. Làm sạch thùng rác: giữ bài tập đã có bài nộp ----------
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000a1', true);
+do $$ declare r jsonb; begin
+  update assignments set deleted_at = now() - interval '40 days' where ma in ('7.1','9.1');
+  r := gv_lam_sach_thung_rac();
+  if not exists (select 1 from assignments where ma = '7.1') then raise exception 'FAIL 12a: xóa mất bài đã có bài nộp'; end if;
+  if exists (select 1 from assignments where ma = '9.1') then raise exception 'FAIL 12b: chưa xóa bài quá 30 ngày'; end if;
+  raise notice 'OK 12: làm sạch % mục, giữ bài đã có bài nộp', r->>'so_muc';
+end $$;
+
+-- ---------- 13. HS không gọi được hàm làm sạch ----------
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000b1', true);
+do $$ begin
+  begin perform gv_lam_sach_thung_rac(); raise exception 'FAIL 13';
+  exception when others then if sqlerrm like 'FAIL%' then raise; end if; raise notice 'OK 13: học sinh bị chặn hàm của giáo viên'; end;
+end $$;
+
+rollback;

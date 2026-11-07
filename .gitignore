@@ -1,0 +1,16 @@
+# Thư viện cài bằng npm (không đẩy lên GitHub)
+node_modules/
+# Bản build
+.next/
+out/
+build/
+# BÍ MẬT: khóa Supabase — tuyệt đối không đẩy lên GitHub
+.env
+.env.local
+.env.*.local
+# Linh tinh
+.DS_Store
+*.log
+*.tsbuildinfo
+next-env.d.ts
+.vercel

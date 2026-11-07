@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+/* =====================================================================
+   HỆ THỐNG THIẾT KẾ — lấy màu/bo góc theo bộ mockup TechKids.
+   Đổi màu chính ở đây là đổi cả web.
+   ===================================================================== */
+@theme {
+  --font-sans: var(--font-be-vietnam), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  --color-navy-950: #0f1b4c;   /* tiêu đề */
+  --color-navy-900: #14224f;   /* sidebar */
+  --color-navy-800: #1b2a5e;
+  --color-navy-700: #24367a;
+  --color-cam-50: #fff4ea;
+  --color-cam-100: #ffe4cc;
+  --color-cam-400: #fb923c;
+  --color-cam-500: #f97316;    /* nút chính, mục đang chọn (bám mockup) */
+  --color-cam-600: #ea580c;
+  --color-cam-700: #c2410c;    /* cam đậm: dùng nếu cần tương phản chữ cao hơn */
+  --color-xanh-50: #eef4ff;
+  --color-xanh-100: #dce8ff;
+  --color-xanh-500: #3b82f6;
+  --color-xanh-600: #2563eb;   /* nút phụ, link */
+  --color-xanh-700: #1e5bd8;
+  --color-tim-50: #f3efff;
+  --color-tim-500: #8b5cf6;
+  --color-la-50: #e9f9ef;
+  --color-la-500: #22c55e;
+  --color-la-600: #16a34a;
+  --color-do-50: #fde8e8;
+  --color-do-600: #dc2626;
+  --color-vang-400: #fbbf24;
+  --color-vien: #e3ecfa;
+  --color-editor: #111827;
+
+  --radius-card: 20px;
+  --shadow-card: 0 8px 24px rgba(30, 64, 175, 0.07);
+}
+
+/* Muốn chữ trắng trên nền cam dễ đọc hơn (tương phản ≥ 4.5:1): đổi dòng dưới thành var(--color-cam-700) */
+:root {
+  --cam-nut: var(--color-cam-500);
+  --cam-nut-hover: var(--color-cam-600);
+}
+
+html { -webkit-text-size-adjust: 100%; }
+body {
+  color: var(--color-navy-950);
+  background: linear-gradient(180deg, #e8f1ff 0%, #f2f7ff 45%, #f7faff 100%);
+  background-attachment: fixed;
+  min-height: 100dvh;
+}
+
+@layer components {
+  .card {
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid var(--color-vien);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+  }
+  .card-pad { padding: 1.25rem; }
+  @media (min-width: 640px) { .card-pad { padding: 1.5rem; } }
+  .h-page { font-size: 1.75rem; line-height: 1.2; font-weight: 800; color: var(--color-navy-950); letter-spacing: -0.01em; }
+  @media (min-width: 1024px) { .h-page { font-size: 2.1rem; } }
+  .h-card { font-size: 1.15rem; font-weight: 800; color: var(--color-navy-950); }
+  .input {
+    width: 100%; border-radius: 12px; border: 1px solid #cfdcf3; background: #f6f9ff;
+    padding: 0.65rem 0.9rem; font-size: 0.95rem; color: var(--color-navy-950); outline: none;
+  }
+  .input:focus { border-color: var(--color-xanh-500); background: #fff; box-shadow: 0 0 0 3px rgba(59,130,246,.18); }
+  .label { display:block; font-size: 0.85rem; font-weight: 600; color: #334155; margin-bottom: 0.3rem; }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tbl { width: 100%; border-collapse: collapse; }
+  .tbl th { text-align: left; font-weight: 700; font-size: .85rem; color: var(--color-navy-950); padding: .7rem .75rem; border-bottom: 1px solid var(--color-vien); white-space: nowrap; }
+  .tbl td { padding: .7rem .75rem; border-bottom: 1px solid #eef3fb; font-size: .92rem; vertical-align: middle; }
+  .tbl tr:last-child td { border-bottom: 0; }
+  .link { color: var(--color-xanh-600); font-weight: 600; }
+  .link:hover { text-decoration: underline; }
+  .code-block { background: #eef3fb; border-radius: 12px; padding: .9rem 1.1rem; font-family: var(--font-mono); font-size: .9rem; overflow-x: auto; white-space: pre; }
+}
+
+/* Nội dung Markdown (Kiến thức, đề bài) */
+.prose-lms h1, .prose-lms h2 { font-size: 1.3rem; font-weight: 800; margin: 1rem 0 .5rem; }
+.prose-lms h3 { font-size: 1.1rem; font-weight: 700; margin: .9rem 0 .4rem; }
+.prose-lms p { margin: .5rem 0; line-height: 1.7; }
+.prose-lms ul { list-style: disc; padding-left: 1.4rem; margin: .5rem 0; }
+.prose-lms ol { list-style: decimal; padding-left: 1.4rem; margin: .5rem 0; }
+.prose-lms li { margin: .2rem 0; }
+.prose-lms a { color: var(--color-xanh-600); text-decoration: underline; }
+.prose-lms pre { background: #eef3fb; border-radius: 12px; padding: .9rem 1.1rem; overflow-x: auto; margin: .7rem 0; }
+.prose-lms code { font-family: var(--font-mono); font-size: .9rem; }
+.prose-lms :not(pre) > code { background: #eef3fb; padding: .1rem .35rem; border-radius: 6px; }
+.prose-lms table { border-collapse: collapse; margin: .6rem 0; }
+.prose-lms th, .prose-lms td { border: 1px solid var(--color-vien); padding: .35rem .6rem; }
+.prose-lms blockquote { border-left: 4px solid var(--color-xanh-100); padding-left: .8rem; color: #475569; }
+.prose-lms img { max-width: 100%; border-radius: 12px; }
+
+/* CodeMirror */
+.cm-editor { height: 100%; font-size: 15px; }
+.cm-editor.cm-focused { outline: none; }
+
+/* In phiếu tiến độ */
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff !important; }
+  .card { box-shadow: none !important; border-color: #ccc !important; }
+  @page { size: A4; margin: 14mm; }
+}
+
+/* Giảm chuyển động nếu người dùng yêu cầu */
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
