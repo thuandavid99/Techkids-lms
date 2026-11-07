@@ -52,7 +52,7 @@ export async function luuBaiTap(_: KQ, fd: FormData): Promise<KQ> {
     if (phamVi === "tat_ca") {
       const { data: cu } = await sb.from("assignments").select(COT.join(",")).eq("id", id).single();
       chk(await sb.from("assignments").update(v).eq("id", id));
-      if (cu && (cu as Record<string, unknown>).hien_thi !== v.hien_thi && !v.hien_thi) await ghiNhatKy("an", "assignments", id);
+      if (cu && (cu as unknown as Record<string, unknown>).hien_thi !== v.hien_thi && !v.hien_thi) await ghiNhatKy("an", "assignments", id);
       await ghiNhatKy("sua", "assignments", id, cu, v);
     } else {
       const c = uuid(phamVi);
