@@ -1,4 +1,8 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getProfile, laQuanTri } from "@/lib/auth";
+import { LoaiPill } from "@/components/ui/Pill";
+import { tenBuoi } from "@/lib/domain/naming";
 import { cacLoaiBuoi, modulesCua, topicsCua, layHet } from "@/lib/server/data";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/States";
@@ -12,13 +16,15 @@ export const metadata = { title: "Chương trình học" };
 export default async function Page({ searchParams }: { searchParams: Promise<{ ct?: string }> }) {
   const { ct: ctUrl } = await searchParams;
   const sb = await createClient();
+  const qt = laQuanTri(await getProfile());
   const { data: cts } = await sb.from("curricula").select("id, ten, mo_ta").is("deleted_at", null).order("tao_luc");
   const ct = (cts ?? []).find((c) => c.id === ctUrl) ?? cts?.[0] ?? null;
   if (!ct) {
     return (
       <Card>
-        <CTToolbar cts={[]} ct={null} moduleCuoi={null} lops={[]} />
-        <EmptyState title="Chưa có chương trình nào" hint="Tạo chương trình mới hoặc nhập PPCT từ file Excel của thầy." action={<ButtonLink href="/gv/chuong-trinh/nhap-excel" variant="green">Nhập PPCT từ Excel</ButtonLink>} />
+        {qt && <CTToolbar cts={[]} ct={null} moduleCuoi={null} lops={[]} />}
+        {qt ? <EmptyState title="Chưa có chương trình nào" hint="Tạo chương trình mới hoặc nhập PPCT từ file Excel của thầy." action={<ButtonLink href="/gv/chuong-trinh/nhap-excel" variant="green">Nhập PPCT từ Excel</ButtonLink>} />
+          : <EmptyState title="Chưa có chương trình nào" hint="Quản trị sẽ tạo chương trình học chung." />}
       </Card>
     );
   }
@@ -53,6 +59,39 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
       };
     }),
   }));
+
+  // Giáo viên thường: CHẾ ĐỘ XEM (danh sách gọn, bấm buổi để xem / sửa bản riêng cho lớp mình)
+  if (!qt) {
+    return (
+      <Card>
+        <h1 className="h-page mb-2">Chương trình học (PPCT)</h1>
+        <p className="mb-4 rounded-xl bg-xanh-50 px-3 py-2 text-sm text-slate-700">
+          Chương trình chung do quản trị soạn. Bấm vào buổi để xem nội dung; thầy/cô có thể <b>sửa bản riêng</b> cho lớp mình và đặt lịch / mở buổi trong <b>Lớp của tôi → Lịch</b>.
+        </p>
+        {(cts ?? []).length > 1 && (
+          <div className="mb-4 flex flex-wrap gap-2">{(cts ?? []).map((c) => <ButtonLink key={c.id} href={`/gv/chuong-trinh?ct=${c.id}`} size="sm" variant={c.id === ct.id ? "navy" : "outline"}>{c.ten}</ButtonLink>)}</div>
+        )}
+        <div className="space-y-4">
+          {ms.map((m) => (
+            <section key={m.id || "khac"}>
+              <h2 className="mb-2 rounded-xl bg-xanh-50 px-3 py-2 font-bold">{m.ten} <span className="font-normal text-slate-500">({m.buoi.length} buổi)</span></h2>
+              <ul className="grid gap-2 md:grid-cols-2">
+                {m.buoi.map((b) => (
+                  <li key={b.id}>
+                    <Link href={`/gv/chuong-trinh/buoi/${b.id}`} className={`flex items-center gap-3 rounded-2xl border px-3 py-2.5 hover:border-xanh-500 ${b.noiBat ? "border-cam-400 bg-cam-50" : "border-vien bg-white"}`}>
+                      <span className="min-w-0 flex-1"><span className="block truncate font-semibold">{tenBuoi(b.nhan, b.ten)}</span>
+                        <span className="text-xs text-slate-500">{b.soTL} tài liệu · {b.soBT} bài tập{b.rieng ? ` · riêng lớp ${b.rieng}` : ""}</span></span>
+                      {b.loaiTen && <LoaiPill ten={b.loaiTen} mau={b.loaiMau} />}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card>

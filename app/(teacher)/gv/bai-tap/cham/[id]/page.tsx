@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { IMG } from "@/lib/brand";
 import { PageHeader } from "@/components/ui/Card";
 import { CodeView } from "@/components/ui/CodeView";
+import { PythonRunner } from "@/components/student/PythonRunner";
 import { Markdown } from "@/components/ui/Markdown";
 import { NhanBai } from "@/components/ui/Pill";
 import { btnClass } from "@/components/ui/Button";
@@ -58,7 +59,16 @@ export default async function Page({ params, searchParams }: { params: Promise<{
         </p>
         {r?.chua_lam_duoc && <p className="rounded-xl bg-tim-50 px-3 py-2 text-sm text-tim-500">🙋 Em báo chưa làm được{r.ghi_chu_co ? `: “${r.ghi_chu_co}”` : ""}</p>}
 
-        {s.code_text !== null && s.code_text !== undefined ? <CodeView code={s.code_text} /> : s.file_path ? (
+        {s.code_text !== null && s.code_text !== undefined ? (
+          <>
+            <CodeView code={s.code_text} />
+            {/* Thầy chạy thử code của em ngay trên trình duyệt của thầy (không chạy trên server) */}
+            <details className="rounded-2xl border border-vien bg-white">
+              <summary className="cursor-pointer px-4 py-3 font-semibold text-xanh-700">▶ Chạy thử bài của em</summary>
+              <div className="px-3 pb-3"><PythonRunner code={s.code_text} chieuCao={300} /></div>
+            </details>
+          </>
+        ) : s.file_path ? (
           <div className="rounded-2xl border border-vien bg-white p-4">
             <p className="font-semibold">📎 {s.ten_goc}</p>
             {laAnh && <img src={`/api/tai-ve?loai=bai-nop&id=${s.id}&xem=1`} alt={`Bài nộp của ${hs?.ho_ten}`} className="mt-3 max-h-[600px] rounded-xl border border-vien" />}

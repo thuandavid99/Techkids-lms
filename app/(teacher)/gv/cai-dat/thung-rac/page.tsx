@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { getAdminOrNull } from "@/lib/auth";
+import { KhongCoQuyen } from "@/components/ui/States";
 import { Card, PageHeader } from "@/components/ui/Card";
 import { ConfirmButton, ActionButton } from "@/components/ui/Modal";
 import { EmptyState } from "@/components/ui/States";
@@ -10,11 +12,12 @@ export const metadata = { title: "Thùng rác" };
 type Bang = "lessons" | "modules" | "topics" | "assignments" | "materials" | "classes" | "curricula" | "profiles" | "announcements";
 
 export default async function Page() {
+  if (!(await getAdminOrNull())) return <KhongCoQuyen home="/gv" chiQuanTri />; // Thùng rác: chỉ quản trị
   const sb = await createClient();
   const q = (b: Bang, cot: string) => sb.from(b).select(`id, deleted_at, ${cot}`).not("deleted_at", "is", null).order("deleted_at", { ascending: false }).limit(200);
   const [ls, ms, ts, as, mats, cls, cts, hs, ans] = await Promise.all([
     q("lessons", "nhan_buoi, tieu_de"), q("modules", "ten"), q("topics", "ten"), q("assignments", "ma, tieu_de"), q("materials", "tieu_de"),
-    q("classes", "ten_lop"), q("curricula", "ten"), q("profiles", "ho_ten, ma_hs"), q("announcements", "noi_dung"),
+    q("classes", "ten_lop"), q("curricula", "ten"), q("profiles", "ho_ten, ma_hs").eq("vai_tro", "hoc_sinh"), q("announcements", "noi_dung"),
   ]);
   type R = Record<string, string>;
   const ds: { bang: Bang; loai: string; id: string; ten: string; luc: string }[] = [

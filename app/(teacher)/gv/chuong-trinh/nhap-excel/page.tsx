@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { getAdminOrNull } from "@/lib/auth";
+import { KhongCoQuyen } from "@/components/ui/States";
 import { cacLoaiBuoi } from "@/lib/server/data";
 import { Card, PageHeader } from "@/components/ui/Card";
 import { NhapPPCT } from "@/components/teacher/NhapPPCT";
@@ -7,6 +9,7 @@ export const metadata = { title: "Nhập PPCT từ Excel" };
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ ct?: string }> }) {
   const { ct = "" } = await searchParams;
+  if (!(await getAdminOrNull())) return <KhongCoQuyen home="/gv/chuong-trinh" chiQuanTri />; // nhập PPCT chung: quản trị
   const sb = await createClient();
   const [loai, { data: cts }] = await Promise.all([cacLoaiBuoi(sb), sb.from("curricula").select("id, ten").is("deleted_at", null).order("tao_luc")]);
   return (

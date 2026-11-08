@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getProfile, laQuanTri } from "@/lib/auth";
 import { cacLop, buoiLop } from "@/lib/server/data";
 import { dangOBuoi } from "@/lib/server/gv";
 import { Card, PageHeader } from "@/components/ui/Card";
@@ -10,17 +11,19 @@ import { EmptyState } from "@/components/ui/States";
 import { LopForm } from "@/components/teacher/LopForm";
 import { luuTruLop, xoaLop } from "@/lib/actions/gv/lop";
 
-export const metadata = { title: "Quản lý lớp" };
+export const metadata = { title: "Lớp học" };
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ luu_tru?: string }> }) {
   const { luu_tru } = await searchParams;
   const sb = await createClient();
+  const qt = laQuanTri(await getProfile()); // giáo viên thường: chỉ xem lớp mình, không thêm/xóa lớp
   const lops = (await cacLop(sb, { kemLuuTru: true })).filter((l) => (luu_tru ? l.archived : !l.archived));
-  const [{ data: hs }, { data: cc }, { data: cts }, { data: gvLop }] = await Promise.all([
+  const [{ data: hs }, { data: cc }, { data: cts }, { data: gvLop }, { data: dsGv }] = await Promise.all([
     sb.from("profiles").select("class_id").eq("vai_tro", "hoc_sinh").is("deleted_at", null),
     sb.from("class_curriculum").select("class_id, curriculum_id"),
     sb.from("curricula").select("id, ten").is("deleted_at", null),
     sb.from("class_teachers").select("class_id, profiles(ho_ten)"),
+    qt ? sb.from("profiles").select("id, ho_ten").eq("vai_tro", "giao_vien").is("deleted_at", null).order("ho_ten") : Promise.resolve({ data: [] as { id: string; ho_ten: string }[] }),
   ]);
   const lich = await Promise.all(lops.map((l) => buoiLop(sb, l.id)));
   const siSo = new Map<string, number>();
@@ -32,12 +35,14 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ l
 
   return (
     <Card>
-      <PageHeader title="Quản lý lớp" actions={<>
+      <PageHeader title={qt ? "Quản lý lớp" : "Lớp của tôi"} actions={<>
         <ButtonLink href={luu_tru ? "/gv/lop" : "/gv/lop?luu_tru=1"} variant="outlineGray" size="sm">{luu_tru ? "Lớp đang học" : "Lớp đã lưu trữ"}</ButtonLink>
         <ButtonLink href="/gv/chuong-trinh/ap-dung" variant="secondary">Áp dụng chương trình</ButtonLink>
-        <LopForm />
+        {qt && <LopForm gvs={dsGv ?? []} />}
       </>} />
-      {lops.length === 0 ? <EmptyState title={luu_tru ? "Không có lớp lưu trữ" : "Chưa có lớp nào"} hint="Bấm “Thêm lớp” để tạo lớp đầu tiên." /> : (
+      {lops.length === 0 ? (qt
+        ? <EmptyState title={luu_tru ? "Không có lớp lưu trữ" : "Chưa có lớp nào"} hint="Bấm “Thêm lớp” để tạo lớp đầu tiên." />
+        : <EmptyState title="Thầy/cô chưa được gán lớp nào" hint="Liên hệ quản trị để được gán lớp phụ trách." />) : (
         <div className="table-wrap">
           <table className="tbl min-w-[860px]">
             <thead><tr><th>Lớp</th><th>Năm học</th><th>Sĩ số</th><th>Chương trình</th><th>Tiến độ</th><th>Giáo viên</th><th className="text-right">Thao tác</th></tr></thead>
@@ -55,10 +60,10 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ l
                     <td>
                       <div className="flex justify-end gap-2">
                         <ButtonLink href={`/gv/lop/${l.id}`} size="sm">Vào lớp</ButtonLink>
-                        <LopForm lop={l} />
-                        <ActionButton action={luuTruLop.bind(null, l.id, !l.archived)}>{l.archived ? "Bỏ lưu trữ" : "Lưu trữ"}</ActionButton>
-                        <ConfirmButton action={xoaLop.bind(null, l.id)} danger variant="outlineGray" title={`Xóa lớp ${l.ten_lop}?`} confirmText="Chuyển vào thùng rác"
-                          message={<>Lớp có <b>{siSo.get(l.id) ?? 0} học sinh</b>. Xóa lớp sẽ làm học sinh mất liên kết với lớp và bài nộp. <b>Nên dùng “Lưu trữ”</b> khi hết năm học. Lớp bị xóa nằm trong Thùng rác 30 ngày.</>}>Xóa</ConfirmButton>
+                        {qt && <LopForm lop={l} />}
+                        {qt && <ActionButton action={luuTruLop.bind(null, l.id, !l.archived)}>{l.archived ? "Bỏ lưu trữ" : "Lưu trữ"}</ActionButton>}
+                        {qt && <ConfirmButton action={xoaLop.bind(null, l.id)} danger variant="outlineGray" title={`Xóa lớp ${l.ten_lop}?`} confirmText="Chuyển vào thùng rác"
+                          message={<>Lớp có <b>{siSo.get(l.id) ?? 0} học sinh</b>. Xóa lớp sẽ làm học sinh mất liên kết với lớp và bài nộp. <b>Nên dùng “Lưu trữ”</b> khi hết năm học. Lớp bị xóa nằm trong Thùng rác 30 ngày.</>}>Xóa</ConfirmButton>}
                       </div>
                     </td>
                   </tr>

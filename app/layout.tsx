@@ -2,7 +2,9 @@ import type { Metadata, Viewport } from "next";
 import { Be_Vietnam_Pro } from "next/font/google";
 import "./globals.css";
 import { BRAND } from "@/lib/brand";
+import { Suspense } from "react";
 import { ToastProvider } from "@/components/ui/Toast";
+import { NavProgress } from "@/components/layout/NavProgress";
 
 const font = Be_Vietnam_Pro({
   subsets: ["latin", "vietnamese"],
@@ -24,6 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="vi" className={font.variable}>
       <body className="font-sans antialiased">
+        <Suspense fallback={null}><NavProgress /></Suspense>
         <ToastProvider>{children}</ToastProvider>
       </body>
     </html>

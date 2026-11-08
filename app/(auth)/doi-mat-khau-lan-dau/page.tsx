@@ -11,5 +11,10 @@ export default async function Page() {
   const p = await getProfile();
   if (!p) redirect("/dang-nhap");
   if (!p.must_change_password) redirect(laGiaoVien(p) ? "/gv" : "/");
-  return <AuthShell minhHoa={IMG.shield}><DoiMkLanDauForm ten={p.ho_ten.split(" ").pop() ?? p.ho_ten} /></AuthShell>;
+  const gv = laGiaoVien(p);
+  return (
+    <AuthShell minhHoa={IMG.shield} kieu={gv ? "gv" : "hs"} tieuDe={gv ? "Chào mừng thầy/cô!" : undefined}>
+      <DoiMkLanDauForm ten={p.ho_ten.split(" ").pop() ?? p.ho_ten} gv={gv} />
+    </AuthShell>
+  );
 }

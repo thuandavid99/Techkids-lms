@@ -1,3 +1,4 @@
+import { getProfile, laQuanTri } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import { Paperclip } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -16,6 +17,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const sb = await createClient();
+  const qt = laQuanTri(await getProfile()); // quản trị sửa bản chung; GV thường chỉ bản riêng lớp mình
   const { data: a } = await sb.from("assignments").select("*, lessons(id, nhan_buoi, tieu_de, curriculum_id, class_id)").eq("id", id).is("ghi_de_cua", null).maybeSingle();
   if (!a) notFound();
   const lesson = a.lessons as { id: string; nhan_buoi: string; tieu_de: string; curriculum_id: string; class_id: string | null };
@@ -46,7 +48,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
               <ConfirmButton action={xoaBaiTap.bind(null, id)} danger variant="outlineGray" title="Xóa bài tập?" confirmText="Chuyển vào thùng rác"
                 message={soBaiNop ? <>Bài tập này đã có <b>{soBaiNop} bài nộp</b>. Nên bấm <b>Ẩn</b> thay vì xóa. Nếu xóa, bài sẽ vào Thùng rác (không thể xóa vĩnh viễn khi đã có bài nộp).</> : "Bài tập sẽ vào Thùng rác, khôi phục được trong 30 ngày."}>Xóa</ConfirmButton>
             </>} />
-          <BaiTapForm v={vals(a)} lops={lops} soBaiNop={soBaiNop ?? 0} banRieng={Object.fromEntries((rieng ?? []).map((r) => [r.class_id, vals(r)]))} />
+          <BaiTapForm suaChung={qt || !!a.class_id} v={vals(a)} lops={lops} soBaiNop={soBaiNop ?? 0} banRieng={Object.fromEntries((rieng ?? []).map((r) => [r.class_id, vals(r)]))} />
         </Card>
       }
       aside={<>

@@ -1,5 +1,6 @@
 import { Trash2, History } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getProfile, laQuanTri } from "@/lib/auth";
 import { cacLoaiBuoi, caiDat } from "@/lib/server/data";
 import { Card, CardTitle, PageHeader } from "@/components/ui/Card";
 import { ButtonLink } from "@/components/ui/Button";
@@ -9,6 +10,22 @@ import { QuyTacForm, DoiMatKhauGvForm } from "@/components/teacher/CaiDatForms";
 export const metadata = { title: "Cài đặt" };
 
 export default async function Page() {
+  const p = await getProfile();
+  if (!laQuanTri(p)) {
+    // Giáo viên thường: chỉ phần cá nhân. Cài đặt hệ thống do quản trị quản lý.
+    return (
+      <div className="space-y-5">
+        <PageHeader title="Cài đặt" sub="Loại buổi, phân loại tài liệu, nhận xét mẫu, mẫu tin nhắn… do quản trị cài đặt cho cả trung tâm." />
+        <div className="grid gap-5 lg:grid-cols-2">
+          <Card><CardTitle>Đổi mật khẩu</CardTitle><DoiMatKhauGvForm /></Card>
+          <Card><CardTitle>Tài khoản</CardTitle>
+            <p><b>{p?.ho_ten}</b></p><p className="text-sm text-slate-600">{p?.email ?? p?.ma_hs}</p>
+            <p className="mt-2 text-sm text-slate-600">Vai trò: Giáo viên — chỉ thấy các lớp được quản trị gán.</p>
+          </Card>
+        </div>
+      </div>
+    );
+  }
   const sb = await createClient();
   const [loai, { data: cats }, { data: nx }, { data: mt }, cd] = await Promise.all([
     cacLoaiBuoi(sb),

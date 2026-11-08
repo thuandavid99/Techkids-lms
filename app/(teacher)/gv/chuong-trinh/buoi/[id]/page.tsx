@@ -1,3 +1,4 @@
+import { getProfile, laQuanTri } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { cacLoaiBuoi, modulesCua, topicsCua } from "@/lib/server/data";
@@ -17,6 +18,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const sb = await createClient();
+  const qt = laQuanTri(await getProfile()); // quản trị sửa bản chung; GV thường chỉ bản riêng lớp mình
   const { data: l } = await sb.from("lessons").select("*").eq("id", id).is("ghi_de_cua", null).maybeSingle();
   if (!l) notFound();
   const [loai, modules, { data: cc }, { data: rieng }, { data: mats }, { data: bts }, { data: cats }, { data: cls }, { data: dsBuoi }] = await Promise.all([
@@ -44,7 +46,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         <Card>
           <PageHeader back={{ href: `/gv/chuong-trinh?ct=${l.curriculum_id}`, label: "Chương trình học" }} title={`Soạn ${tenBuoi(l.nhan_buoi, l.tieu_de)}`}
             sub={<>{l.class_id && <Pill mau="purple">Buổi riêng của lớp {lops[0]?.ten}</Pill>} {l.ban_nhap && <Pill mau="yellow">Bản nháp</Pill>}</>} />
-          <BuoiForm id={id} v={vals(l)} banRieng={Object.fromEntries((rieng ?? []).map((r) => [r.class_id, vals(r)]))} lops={lops}
+          <BuoiForm suaChung={qt} id={id} v={vals(l)} banRieng={Object.fromEntries((rieng ?? []).map((r) => [r.class_id, vals(r)]))} lops={lops}
             loai={loai.map((x) => ({ id: x.id, ten: x.ten }))} modules={modules.map((m) => ({ id: m.id, ten: m.ten }))}
             topics={topics.map((t) => ({ id: t.id, ten: t.ten, module_id: t.module_id }))} moduleId={l.module_id ?? ""} topicId={l.topic_id ?? ""} laBuoiRieng={!!l.class_id} />
         </Card>

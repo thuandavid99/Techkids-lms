@@ -112,3 +112,9 @@ body {
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
+
+/* Thanh tiến trình khi chuyển trang (components/layout/NavProgress.tsx) */
+@keyframes nav-chay {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
