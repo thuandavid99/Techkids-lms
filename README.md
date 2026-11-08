@@ -75,7 +75,10 @@ Mở từng file trong thư mục `supabase/` bằng VS Code → **Ctrl+A**, **C
 | 2 | `supabase/002_rls.sql` | Bật phân quyền (RLS) cho mọi bảng, hàm `is_teacher()` |
 | 3 | `supabase/003_storage.sql` | Tạo 3 kho file **riêng tư**: `submissions`, `materials`, `assignment-files` |
 | 4 | `supabase/004_views_functions.sql` | View tính trạng thái nộp bài, hàm nộp/chấm, thông báo tự động |
-| 5 (tùy chọn) | `supabase/seed.sql` | Loại buổi, phân loại tài liệu, nhận xét mẫu, mẫu tin nhắn mặc định |
+| 5 | `supabase/005_giao_vien_rieng.sql` | **Phân loại tài khoản**: Quản trị / Giáo viên (mỗi GV chỉ thấy lớp mình) |
+| 6 (tùy chọn) | `supabase/seed.sql` | Loại buổi, phân loại tài liệu, nhận xét mẫu, mẫu tin nhắn mặc định |
+
+> Đã chạy 001–004 từ trước? Chỉ cần chạy thêm **005**. Nếu sau này chạy lại 002 hoặc 004, **luôn chạy lại 005 sau cùng**.
 
 - Mỗi lần **Run** thấy chữ **Success. No rows returned** là đúng.
 - Chạy lại một file **không làm mất dữ liệu** (các file viết kiểu "nếu chưa có thì tạo").
@@ -106,13 +109,15 @@ Mở từng file trong thư mục `supabase/` bằng VS Code → **Ctrl+A**, **C
    - `HS_EMAIL_DOMAIN`: đuôi email ảo của học sinh (`ma_hs@đuôi`). **Chọn một lần, không đổi về sau** (đổi thì học sinh cũ không đăng nhập được). Không cần là tên miền thật vì hệ thống không gửi email.
    - **Không bao giờ** thêm `NEXT_PUBLIC_` vào trước `SUPABASE_SERVICE_ROLE_KEY`.
 
-## 7. Tạo tài khoản giáo viên
+## 7. Tạo tài khoản quản trị (thầy/cô chủ trung tâm)
 Trong Terminal VS Code (đã có `.env.local`, đã `npm install`):
 ```bash
 npm run create-teacher -- thaythuan "Thầy Thuận" MatKhauManh123
 ```
-- Đăng nhập web bằng **`thaythuan`** + **`MatKhauManh123`** (mật khẩu ≥ 8 ký tự).
-- Quên mật khẩu giáo viên: chạy lại đúng lệnh với mật khẩu mới.
+- Tài khoản đầu tiên tự thành **Quản trị**. Đăng nhập ở trang **`/giao-vien`** bằng `thaythuan` + mật khẩu.
+- Nếu đã tạo tài khoản bằng tay trong Supabase (email `truongdavid19999@gmail.com`), file `005` tự nâng tài khoản đó lên Quản trị — đăng nhập bằng **email đầy đủ**.
+- Quên mật khẩu quản trị: chạy lại đúng lệnh với mật khẩu mới (vai trò Quản trị được giữ nguyên).
+- **Thêm giáo viên khác:** đăng nhập quản trị → menu **Giáo viên** → **+ Thêm giáo viên** (email, họ tên, chọn lớp) → hệ thống hiện **mật khẩu tạm một lần** → gửi cho giáo viên. Không cần vào Supabase nữa.
 - Tài khoản **học sinh** tạo trong web: **Học sinh → Thêm một bạn / Nhập Excel** → bảng mật khẩu tạm hiện **một lần** → bấm **Tải bảng mật khẩu** / **Sao chép** ngay.
 
 ## 8. Đẩy mã lên GitHub (kho riêng tư)
@@ -138,10 +143,11 @@ npm run create-teacher -- thaythuan "Thầy Thuận" MatKhauManh123
 4. Mở **Environment Variables**, thêm **4 biến** (Key / Value giống hệt `.env.local`):
    `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `HS_EMAIL_DOMAIN`.
 5. **Deploy** → chờ 2–3 phút → **Continue to Dashboard** → **Visit**.
-6. Đổi/sửa biến sau này: **Project → Settings → Environment Variables** → sửa → **Deployments** → `⋯` bản mới nhất → **Redeploy**.
+6. **Kiểm tra vùng chạy = Singapore** (rất quan trọng cho tốc độ): dự án có file `vercel.json` đặt sẵn vùng `sin1` (Singapore, cùng chỗ với Supabase). Kiểm tra: **Settings → Functions → Function Regions** phải là **Singapore (sin1)**. Nếu để mặc định Washington (Mỹ), mỗi lần bấm sẽ chậm thêm vài giây.
+7. Đổi/sửa biến sau này: **Project → Settings → Environment Variables** → sửa → **Deployments** → `⋯` bản mới nhất → **Redeploy**.
 
 ## 10. Đăng nhập thử trên điện thoại
-1. Máy tính: vào `https://<tên>.vercel.app/dang-nhap` → đăng nhập giáo viên → **Quản lý lớp → Thêm lớp** → **Học sinh → Thêm một bạn** (vào lớp vừa tạo) → chép mật khẩu tạm.
+1. Máy tính: vào `https://<tên>.vercel.app/giao-vien` → đăng nhập quản trị → **Quản lý lớp → Thêm lớp** → **Học sinh → Thêm một bạn** (vào lớp vừa tạo) → chép mật khẩu tạm.
 2. **Chương trình học** → thêm buổi (hoặc **Nhập từ Excel** bằng `ppct.xlsx`) → **Áp dụng cho lớp** → mở buổi cho lớp.
 3. Điện thoại: mở cùng địa chỉ → đăng nhập bằng **mã học sinh** + mật khẩu tạm → hệ thống bắt **đổi mật khẩu lần đầu** → vào trang chủ → mở buổi → làm bài → nộp.
 4. Máy tính (giáo viên): **Bài tập → Hàng đợi chấm** thấy bài vừa nộp → chấm → điện thoại học sinh có thông báo.
@@ -150,7 +156,7 @@ npm run create-teacher -- thaythuan "Thầy Thuận" MatKhauManh123
 ## 11. Cập nhật sau này
 Sửa mã → chạy thử `npm run dev` → kiểm tra → VS Code **Source Control** → gõ ghi chú → **Commit** → **Sync Changes** (đẩy lên GitHub) → Vercel **tự cập nhật** sau 2–3 phút (xem ở tab **Deployments**).
 Nếu bản mới lỗi: Vercel → **Deployments** → bản cũ chạy tốt → `⋯` → **Promote to Production** (quay về bản cũ).
-Thay đổi cơ sở dữ liệu: chỉ chạy file SQL mới (đánh số tiếp `005_...sql`) trong SQL Editor; **không** xóa bảng cũ.
+Thay đổi cơ sở dữ liệu: chỉ chạy file SQL mới (đánh số tiếp `006_...sql`) trong SQL Editor; **không** xóa bảng cũ.
 
 ## 12. Sao lưu
 - **Bảng điểm**: Báo cáo → **Bảng điểm** → chọn lớp + học kỳ → **Tải Excel** (làm cuối mỗi tháng/học kỳ).
@@ -166,6 +172,22 @@ Thay đổi cơ sở dữ liệu: chỉ chạy file SQL mới (đánh số tiế
 - **Vercel Hobby**: theo điều khoản là cho **mục đích cá nhân, phi thương mại**. Nếu trung tâm thu học phí và dùng web cho việc kinh doanh, cần xem điều khoản và có thể phải dùng gói **Pro**.
 
 ---
+
+## Phân loại tài khoản
+| Vai trò | Đăng nhập ở | Thấy / làm được |
+|---|---|---|
+| **Quản trị** | `/giao-vien` (email hoặc tên đăng nhập) | Mọi lớp; menu **Giáo viên** (thêm, gán lớp, cấp lại mật khẩu, khóa); cài đặt hệ thống; chương trình học chung; kho học liệu; thùng rác |
+| **Giáo viên** | `/giao-vien` (email) | Chỉ **lớp được gán**: học sinh, chấm bài, ma trận, báo cáo, thông báo lớp, lịch lớp; chương trình chung chỉ **xem**, sửa được **bản riêng** cho lớp mình |
+| **Học sinh** | `/dang-nhap` (mã HS) | Bài học, bài tập, nộp bài, kết quả của mình |
+
+Quyền được chặn ở **cơ sở dữ liệu** (RLS), không chỉ ẩn nút: giáo viên A gõ thẳng đường dẫn của lớp B cũng không xem được.
+
+## Chạy thử code Python (kiểu W3Schools)
+- Màn **Làm bài**: viết code bên trái, bấm **▶ Chạy** (hoặc **Ctrl + Enter**) → kết quả hiện bên phải. Bài có `input()`: mở **Dữ liệu vào**, mỗi dòng là một lần nhập.
+- Lỗi được rút gọn + **gợi ý tiếng Việt** (thụt lề, cú pháp, sai tên biến…). Chạy quá 10 giây (vòng lặp vô hạn) tự dừng.
+- Code chạy **ngay trên máy học sinh** bằng Pyodide (Python trong trình duyệt), **không** chạy trên server, **không** chấm điểm. Lần đầu tải khoảng 10 MB rồi trình duyệt tự lưu.
+- Giáo viên: màn **Chấm bài** có mục **▶ Chạy thử bài của em**.
+- Đổi phiên bản Pyodide: sửa `PYODIDE_URL` trong `components/student/PythonRunner.tsx`.
 
 ## Bảng ảnh mockup ↔ màn hình
 | # | Tên file ảnh | Màn hình | Đường dẫn |
@@ -221,3 +243,7 @@ docs/              sơ đồ dữ liệu, kiểm thử thủ công, đối chi�
 | Web chậm/không vào được sau kỳ nghỉ | Supabase tạm dừng dự án → vào Supabase bấm **Restore** |
 | Tải file lên báo lỗi dung lượng | File vượt giới hạn trong `lib/domain/files.ts` hoặc của gói Supabase |
 | Học sinh không thấy buổi | Buổi chưa **mở** cho lớp đó (Chương trình học → buổi → Cài đặt theo lớp) |
+| Giáo viên đăng nhập xong không thấy lớp nào | Quản trị chưa gán lớp: menu **Giáo viên** → **Gán lớp** |
+| Giáo viên báo "Chỉ quản trị sửa được nội dung chung" | Đúng thiết kế: chọn **"Chỉ lớp …"** để sửa bản riêng cho lớp mình |
+| Bấm chuyển trang chậm | Chạy `npm run dev` luôn chậm hơn (mỗi trang được dựng lần đầu). Bản trên Vercel nhanh hơn nhiều — nhớ kiểm tra vùng **Singapore** (bước 9.6) |
+| Bấm Chạy báo "Không tải được bộ chạy Python" | Mạng chặn `cdn.jsdelivr.net` (một số mạng trường học). Thử mạng khác |
