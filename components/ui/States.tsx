@@ -37,12 +37,12 @@ export function PageSkeleton() {
   );
 }
 
-export function KhongCoQuyen({ home = "/" }: { home?: string }) {
+export function KhongCoQuyen({ home = "/", chiQuanTri = false }: { home?: string; chiQuanTri?: boolean }) {
   return (
     <div className="card card-pad mx-auto mt-10 max-w-lg text-center">
       <Lock className="mx-auto mb-3 h-12 w-12 text-cam-500" />
       <h1 className="text-xl font-extrabold">Bạn không có quyền xem trang này</h1>
-      <p className="mt-2 text-slate-600">Trang này chỉ dành cho giáo viên. Nếu bạn nghĩ đây là nhầm lẫn, hãy đăng nhập lại bằng đúng tài khoản.</p>
+      <p className="mt-2 text-slate-600">{chiQuanTri ? "Trang này chỉ dành cho tài khoản quản trị. Cần thay đổi gì, thầy/cô liên hệ quản trị nhé." : "Trang này chỉ dành cho giáo viên. Nếu bạn nghĩ đây là nhầm lẫn, hãy đăng nhập lại bằng đúng tài khoản."}</p>
       <Link href={home} className={btnClass("primary", "md", "mt-5")}>Về trang chủ</Link>
     </div>
   );

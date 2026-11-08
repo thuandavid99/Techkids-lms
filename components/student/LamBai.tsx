@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarDays, CloudUpload, FileCheck, Lock } from "lucide-react";
 import { CodeEditor } from "./CodeEditor";
+import { PythonRunner } from "./PythonRunner";
 import { FlagToggle } from "./FlagToggle";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -99,7 +100,8 @@ export function LamBai(props: LamBaiProps & { children?: React.ReactNode }) {
   const coTheNop = !khoa && (tab === "code" ? code.trim().length > 0 : !!file);
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+    // Màn rộng (≥1536px): [code | kết quả] + cột thông tin; laptop: [code | kết quả], thông tin xuống dưới
+    <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_320px]">
       <div className="card card-pad min-w-0 space-y-4">
         {props.children}
         <div role="tablist" className="flex gap-1 border-b border-vien">
@@ -109,8 +111,12 @@ export function LamBai(props: LamBaiProps & { children?: React.ReactNode }) {
 
         {tab === "code" ? (
           <div>
-            <CodeEditor value={props.code0} readOnly={!!khoa} onChange={(v) => { setCode(v); henLuu(v); }} />
-            <p className="mt-2 text-sm text-slate-500" aria-live="polite">{dangLuu ? "Đang lưu nháp…" : luuLuc ? `Đã lưu nháp lúc ${fmtTime(luuLuc)}` : "Nháp sẽ tự lưu khi em gõ."}</p>
+            {/* Kiểu W3Schools: viết code bên trái, bấm Chạy → kết quả bên phải (điện thoại: xếp trên/dưới) */}
+            <div className="grid gap-3 lg:grid-cols-2">
+              <CodeEditor value={props.code0} readOnly={!!khoa} onChange={(v) => { setCode(v); henLuu(v); }} />
+              <PythonRunner code={code} />
+            </div>
+            <p className="mt-2 text-sm text-slate-500" aria-live="polite">{dangLuu ? "Đang lưu nháp…" : luuLuc ? `Đã lưu nháp lúc ${fmtTime(luuLuc)}` : "Nháp sẽ tự lưu khi em gõ."} · Chạy thử chỉ để em kiểm tra, <b>không phải nộp bài</b>.</p>
           </div>
         ) : (
           <div>

@@ -39,7 +39,7 @@ export function Bell_({ count, href }: { count: number; href: string }) {
   );
 }
 
-export function UserMenu({ name, avatar, laGv }: { name: string; avatar: string; laGv: boolean }) {
+export function UserMenu({ name, avatar, laGv, vaiTro }: { name: string; avatar: string; laGv: boolean; vaiTro?: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -54,7 +54,10 @@ export function UserMenu({ name, avatar, laGv }: { name: string; avatar: string;
     <div ref={ref} className="relative">
       <button onClick={() => setOpen((x) => !x)} aria-expanded={open} aria-haspopup="menu" className="card inline-flex h-11 items-center gap-2 rounded-2xl pl-1.5 pr-3">
         <Avatar name={name} avatar={avatar} size={34} />
-        <span className="hidden max-w-[160px] truncate font-semibold sm:inline">{name}</span>
+        <span className="hidden max-w-[160px] flex-col items-start leading-tight sm:flex">
+          <span className="max-w-[160px] truncate font-semibold">{name}</span>
+          {vaiTro && <span className={`text-[0.7rem] font-bold uppercase tracking-wide ${vaiTro === "Quản trị" ? "text-cam-600" : "text-xanh-600"}`}>{vaiTro}</span>}
+        </span>
         <ChevronDown className="h-4 w-4" />
       </button>
       {open && (

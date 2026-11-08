@@ -3,10 +3,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Home, BookMarked, FolderOpen, ClipboardList, BarChart3, Settings, Users, UserRound, BookOpen, Menu, X } from "lucide-react";
+import { Home, BookMarked, FolderOpen, ClipboardList, BarChart3, Settings, Users, UserRound, BookOpen, Menu, X, UserCog } from "lucide-react";
 import { BRAND, IMG } from "@/lib/brand";
 
-const ICON = { home: Home, buoi: BookMarked, kho: FolderOpen, bai: ClipboardList, kq: BarChart3, caidat: Settings, lop: Users, hs: UserRound, ct: BookOpen };
+const ICON = { home: Home, buoi: BookMarked, kho: FolderOpen, bai: ClipboardList, kq: BarChart3, caidat: Settings, lop: Users, hs: UserRound, ct: BookOpen, gv: UserCog };
 export type IconKey = keyof typeof ICON;
 export interface NavItem { href: string; label: string; icon: IconKey; exact?: boolean }
 
@@ -14,9 +14,10 @@ function laDangChon(path: string, it: NavItem) {
   return it.exact ? path === it.href : path === it.href || path.startsWith(it.href + "/");
 }
 
-function Logo() {
+function Logo({ nhan }: { nhan?: string }) {
   return (
     <Link href="/" className="flex flex-col items-center px-3 pt-5 pb-4 text-center">
+      {nhan && <span className="mb-2 rounded-full bg-cam-500 px-3 py-0.5 text-[0.7rem] font-bold uppercase tracking-wider text-white">{nhan}</span>}
       <Image src={IMG.logoRobot} alt="" width={120} height={82} className="h-auto w-[110px]" priority />
       <span className="mt-1 text-[1.65rem] font-extrabold leading-none tracking-tight">
         <span className="text-white">{BRAND.phan1}</span><span className="text-vang-400">{BRAND.phan2}</span>
@@ -59,14 +60,14 @@ function Bottom() {
 const NEN = "bg-gradient-to-b from-navy-900 via-navy-800 to-[#1d3a8a]";
 
 /** Sidebar máy tính (≥1024px) + menu bật ra trên điện thoại */
-export function Sidebar({ items }: { items: NavItem[] }) {
+export function Sidebar({ items, nhan }: { items: NavItem[]; nhan?: string }) {
   const [open, setOpen] = useState(false);
   const path = usePathname();
   useEffect(() => setOpen(false), [path]);
   return (
     <>
       <aside className={`no-print sticky top-0 hidden h-dvh w-[200px] shrink-0 flex-col overflow-y-auto rounded-r-3xl lg:flex ${NEN}`}>
-        <Logo /><Menu_ items={items} /><Bottom />
+        <Logo nhan={nhan} /><Menu_ items={items} /><Bottom />
       </aside>
       {/* Điện thoại: nút mở menu */}
       <button onClick={() => setOpen(true)} aria-label="Mở menu"
@@ -77,7 +78,7 @@ export function Sidebar({ items }: { items: NavItem[] }) {
         <div className="no-print fixed inset-0 z-[80] bg-navy-950/50 lg:hidden" onClick={() => setOpen(false)}>
           <aside className={`flex h-full w-[240px] flex-col overflow-y-auto ${NEN}`} onClick={(e) => e.stopPropagation()}>
             <button onClick={() => setOpen(false)} aria-label="Đóng menu" className="ml-auto mr-3 mt-3 text-white"><X className="h-6 w-6" /></button>
-            <Logo /><Menu_ items={items} onNav={() => setOpen(false)} /><Bottom />
+            <Logo nhan={nhan} /><Menu_ items={items} onNav={() => setOpen(false)} /><Bottom />
           </aside>
         </div>
       )}

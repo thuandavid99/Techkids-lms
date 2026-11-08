@@ -12,11 +12,13 @@ export interface BuoiVals { tieu_de: string; nhan_buoi: string; loai_id: string;
 interface Opt { id: string; ten: string }
 
 /** Form soạn buổi; hỏi "Tất cả lớp / Chỉ lớp này" khi chương trình dùng cho nhiều lớp (mục 2.2) */
-export function BuoiForm({ id, v, banRieng, lops, loai, modules, topics, moduleId, topicId, laBuoiRieng }: {
+// suaChung = false (giáo viên thường): không có lựa chọn "Tất cả lớp", chỉ sửa bản riêng lớp mình
+export function BuoiForm({ id, v, banRieng, lops, loai, modules, topics, moduleId, topicId, laBuoiRieng, suaChung = true }: {
   id: string; v: BuoiVals; banRieng: Record<string, BuoiVals>; lops: Opt[]; loai: Opt[]; modules: Opt[]; topics: (Opt & { module_id: string })[];
-  moduleId: string; topicId: string; laBuoiRieng: boolean;
+  moduleId: string; topicId: string; laBuoiRieng: boolean; suaChung?: boolean;
 }) {
-  const [phamVi, setPhamVi] = useState("tat_ca");
+  const macDinh = suaChung || laBuoiRieng ? "tat_ca" : lops[0]?.id ?? "tat_ca";
+  const [phamVi, setPhamVi] = useState(macDinh);
   const [mod, setMod] = useState(moduleId);
   const [pending, start] = useTransition();
   const toast = useToast();
@@ -25,15 +27,19 @@ export function BuoiForm({ id, v, banRieng, lops, loai, modules, topics, moduleI
   return (
     <ActionForm action={luuBuoi} className="space-y-4" key={phamVi}>
       <input type="hidden" name="id" value={id} />
-      {lops.length > 1 && !laBuoiRieng && (
+      {!suaChung && !laBuoiRieng && lops.length === 0 && (
+        <p className="rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-600">Chế độ xem: buổi chung do quản trị soạn. Lớp của thầy/cô chưa dùng chương trình này.</p>
+      )}
+      {(suaChung ? lops.length > 1 : lops.length > 0) && !laBuoiRieng && (
         <div className="rounded-2xl border border-xanh-100 bg-xanh-50 p-3">
           <p className="mb-2 font-semibold">Thay đổi này áp dụng cho:</p>
+          {!suaChung && <p className="mb-2 text-xs text-slate-600">Nội dung chung do quản trị soạn. Thầy/cô sửa được <b>bản riêng</b> cho lớp mình (lớp khác không bị ảnh hưởng).</p>}
           <div className="flex flex-wrap gap-x-4 gap-y-2">
-            <label className="inline-flex items-center gap-2"><input type="radio" name="pham_vi" value="tat_ca" checked={phamVi === "tat_ca"} onChange={() => setPhamVi("tat_ca")} /> <b>Tất cả lớp</b> đang dùng chương trình này</label>
+            {suaChung && <label className="inline-flex items-center gap-2"><input type="radio" name="pham_vi" value="tat_ca" checked={phamVi === "tat_ca"} onChange={() => setPhamVi("tat_ca")} /> <b>Tất cả lớp</b> đang dùng chương trình này</label>}
             {lops.map((l) => <label key={l.id} className="inline-flex items-center gap-2"><input type="radio" name="pham_vi" value={l.id} checked={phamVi === l.id} onChange={() => setPhamVi(l.id)} /> Chỉ lớp {l.ten}{banRieng[l.id] ? " (đang có bản riêng)" : ""}</label>)}
           </div>
           {phamVi !== "tat_ca" && banRieng[phamVi] && (
-            <Button size="sm" variant="outlineGray" className="mt-2" disabled={pending} onClick={() => start(async () => { const kq = await boBanRieng(id, phamVi); if (kq.ok) { toast(kq.tb!); setPhamVi("tat_ca"); router.refresh(); } else toast(kq.loi!, "loi"); })}>Bỏ bản riêng, dùng nội dung chung</Button>
+            <Button size="sm" variant="outlineGray" className="mt-2" disabled={pending} onClick={() => start(async () => { const kq = await boBanRieng(id, phamVi); if (kq.ok) { toast(kq.tb!); setPhamVi(macDinh); router.refresh(); } else toast(kq.loi!, "loi"); })}>Bỏ bản riêng, dùng nội dung chung</Button>
           )}
         </div>
       )}

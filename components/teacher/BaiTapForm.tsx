@@ -13,8 +13,9 @@ export interface BaiTapVals {
 }
 
 /** Form soạn bài tập; hỏi "Tất cả lớp / Chỉ lớp này" khi chương trình dùng cho nhiều lớp (mục 2.2) */
-export function BaiTapForm({ v, lops, soBaiNop, banRieng }: { v: BaiTapVals; lops: { id: string; ten_lop: string }[]; soBaiNop: number; banRieng: Record<string, BaiTapVals> }) {
-  const [phamVi, setPhamVi] = useState("tat_ca");
+// suaChung = false (giáo viên thường): chỉ sửa bản riêng cho lớp mình
+export function BaiTapForm({ v, lops, soBaiNop, banRieng, suaChung = true }: { v: BaiTapVals; lops: { id: string; ten_lop: string }[]; soBaiNop: number; banRieng: Record<string, BaiTapVals>; suaChung?: boolean }) {
+  const [phamVi, setPhamVi] = useState(suaChung ? "tat_ca" : lops[0]?.id ?? "tat_ca");
   const [baoLop, setBaoLop] = useState(false);
   const cur = phamVi === "tat_ca" ? v : banRieng[phamVi] ?? v;
   const Chk = ({ n, l, d }: { n: string; l: string; d: boolean }) => (
@@ -23,11 +24,12 @@ export function BaiTapForm({ v, lops, soBaiNop, banRieng }: { v: BaiTapVals; lop
   return (
     <ActionForm action={luuBaiTap} className="space-y-4" key={phamVi}>
       <input type="hidden" name="id" value={v.id} />
-      {lops.length > 1 && (
+      {(suaChung ? lops.length > 1 : lops.length > 0) && (
         <div className="rounded-2xl border border-xanh-100 bg-xanh-50 p-3">
           <p className="mb-2 font-semibold">Thay đổi này áp dụng cho:</p>
+          {!suaChung && <p className="mb-2 text-xs text-slate-600">Bài tập chung do quản trị soạn. Thầy/cô sửa được <b>bản riêng</b> cho lớp mình.</p>}
           <div className="flex flex-wrap gap-3">
-            <label className="inline-flex items-center gap-2"><input type="radio" name="pham_vi" value="tat_ca" checked={phamVi === "tat_ca"} onChange={() => setPhamVi("tat_ca")} /> <b>Tất cả lớp</b> dùng chương trình này</label>
+            {suaChung && <label className="inline-flex items-center gap-2"><input type="radio" name="pham_vi" value="tat_ca" checked={phamVi === "tat_ca"} onChange={() => setPhamVi("tat_ca")} /> <b>Tất cả lớp</b> dùng chương trình này</label>}
             {lops.map((l) => (
               <label key={l.id} className="inline-flex items-center gap-2"><input type="radio" name="pham_vi" value={l.id} checked={phamVi === l.id} onChange={() => setPhamVi(l.id)} /> Chỉ lớp {l.ten_lop}{banRieng[l.id] ? " (đang có bản riêng)" : ""}</label>
             ))}

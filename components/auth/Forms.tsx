@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { UserRound, Lock, Eye, EyeOff, Home, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { UserRound, Lock, Eye, EyeOff, Home, ArrowLeft, CheckCircle2, Mail } from "lucide-react";
 import { dangNhap, guiYeuCauQuenMk, doiMatKhauLanDau } from "@/lib/actions/auth";
 import { btnClass } from "@/components/ui/Button";
 import type { KQ } from "@/lib/types";
@@ -31,25 +31,40 @@ function Loi({ s }: { s: KQ }) {
   return !s.ok && s.loi ? <p role="alert" className="rounded-xl bg-do-50 px-3 py-2 text-sm text-do-600">{s.loi}</p> : null;
 }
 
-export function LoginForm() {
+/** Form đăng nhập. khu = "hs": mã học sinh; khu = "gv": email giáo viên (cửa riêng /giao-vien) */
+export function LoginForm({ khu = "hs" }: { khu?: "hs" | "gv" }) {
   const [s, act] = useActionState(dangNhap, { ok: false } as KQ);
+  const gv = khu === "gv";
   return (
     <form action={act} className="card mx-auto w-full max-w-md space-y-5 !rounded-[28px] px-7 py-9 sm:px-10">
+      <input type="hidden" name="khu" value={khu} />
       <div className="text-center">
-        <h2 className="text-3xl font-extrabold">Đăng nhập</h2>
-        <p className="mt-2 text-slate-600">Vui lòng nhập thông tin của bạn</p>
+        <h2 className="text-3xl font-extrabold">{gv ? "Đăng nhập giáo viên" : "Đăng nhập"}</h2>
+        <p className="mt-2 text-slate-600">{gv ? "Dùng email và mật khẩu quản trị đã cấp" : "Vui lòng nhập thông tin của bạn"}</p>
       </div>
       <div className="relative">
-        <UserRound className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-navy-800" />
-        <input name="ma" required placeholder="Mã học sinh" aria-label="Mã học sinh" autoComplete="username" autoCapitalize="characters"
-          className="input h-14 !rounded-2xl pl-12 text-base" />
+        {gv ? <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-navy-800" />
+            : <UserRound className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-navy-800" />}
+        {gv
+          ? <input name="ma" type="text" inputMode="email" required placeholder="Email giáo viên" aria-label="Email giáo viên" autoComplete="username" autoCapitalize="none" className="input h-14 !rounded-2xl pl-12 text-base" />
+          : <input name="ma" required placeholder="Mã học sinh" aria-label="Mã học sinh" autoComplete="username" autoCapitalize="characters" className="input h-14 !rounded-2xl pl-12 text-base" />}
       </div>
       <OMatKhau name="mat_khau" placeholder="Mật khẩu" autoComplete="current-password" />
       <Loi s={s} />
       <Nut pending="Đang đăng nhập…">Đăng nhập</Nut>
       <div className="flex flex-col items-center gap-2 pt-1 text-sm">
-        <Link href="/quen-mat-khau" className="font-semibold text-xanh-600 hover:underline">Quên mật khẩu?</Link>
-        <Link href="/" className="inline-flex items-center gap-1.5 text-xanh-700 hover:underline"><Home className="h-4 w-4" /> Hoặc quay lại trang chủ</Link>
+        {gv ? (
+          <>
+            <p className="text-center text-slate-500">Quên mật khẩu? Liên hệ quản trị để được cấp lại.</p>
+            <Link href="/dang-nhap" className="inline-flex items-center gap-1.5 text-xanh-700 hover:underline"><ArrowLeft className="h-4 w-4" /> Trang đăng nhập học sinh</Link>
+          </>
+        ) : (
+          <>
+            <Link href="/quen-mat-khau" className="font-semibold text-xanh-600 hover:underline">Quên mật khẩu?</Link>
+            <Link href="/" className="inline-flex items-center gap-1.5 text-xanh-700 hover:underline"><Home className="h-4 w-4" /> Hoặc quay lại trang chủ</Link>
+            <Link href="/giao-vien" className="mt-1 text-xs text-slate-500 hover:underline">Giáo viên đăng nhập tại đây</Link>
+          </>
+        )}
       </div>
     </form>
   );
@@ -84,8 +99,22 @@ export function QuenMkForm() {
   );
 }
 
-export function DoiMkLanDauForm({ ten }: { ten: string }) {
+export function DoiMkLanDauForm({ ten, gv = false }: { ten: string; gv?: boolean }) {
   const [s, act] = useActionState(doiMatKhauLanDau, { ok: false } as KQ);
+  if (gv) {
+    return (
+      <form action={act} className="card mx-auto w-full max-w-md space-y-4 !rounded-[28px] px-7 py-9 sm:px-10">
+        <div className="text-center">
+          <h2 className="text-2xl font-extrabold">Chào {ten}! Đặt mật khẩu mới</h2>
+          <p className="mt-2 text-sm text-slate-600">Tài khoản giáo viên vừa được cấp mật khẩu tạm. Hãy đặt mật khẩu riêng: <b>ít nhất 8 ký tự, có cả chữ và số</b>. Sau này đổi lại trong Cài đặt.</p>
+        </div>
+        <OMatKhau name="mat_khau" placeholder="Mật khẩu mới" autoComplete="new-password" />
+        <OMatKhau name="nhap_lai" placeholder="Nhập lại mật khẩu mới" autoComplete="new-password" />
+        <Loi s={s} />
+        <Nut pending="Đang lưu…">Lưu mật khẩu</Nut>
+      </form>
+    );
+  }
   return (
     <form action={act} className="card mx-auto w-full max-w-md space-y-4 !rounded-[28px] px-7 py-9 sm:px-10">
       <div className="text-center">
