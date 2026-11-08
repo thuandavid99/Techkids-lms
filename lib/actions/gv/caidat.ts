@@ -3,14 +3,14 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { xoaFile } from "@/lib/server/storage";
 import { ghiNhatKy } from "@/lib/server/audit";
-import { chay, chk, loi, ok, str, bool, uuid } from "./_util";
+import { chay, chk, loi, ok, str, bool, uuid, chayQt, kiemTraHs } from "./_util";
 import type { KQ } from "@/lib/types";
 
 const xong = () => revalidatePath("/", "layout");
 
 // ---------- DANH MỤC (giáo viên tự thêm/sửa/xóa) ----------
 export async function luuLoaiBuoi(_: KQ, fd: FormData): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     const id = str(fd, "id");
     const v = {
       ten: str(fd, "ten", 60), mau: str(fd, "mau", 20) || "blue", icon: str(fd, "icon", 30) || "book-open",
@@ -26,7 +26,7 @@ export async function luuLoaiBuoi(_: KQ, fd: FormData): Promise<KQ> {
 }
 
 export async function luuDanhMuc(_: KQ, fd: FormData): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     const bang = str(fd, "bang");
     const id = str(fd, "id");
     if (bang === "material_categories") {
@@ -49,7 +49,7 @@ export async function luuDanhMuc(_: KQ, fd: FormData): Promise<KQ> {
 }
 
 export async function xoaDanhMuc(bang: "lesson_types" | "material_categories" | "comment_templates" | "message_templates", id: string): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     if (bang === "lesson_types" || bang === "material_categories") chk(await sb.from(bang).update({ deleted_at: new Date().toISOString() }).eq("id", uuid(id)));
     else if (bang === "comment_templates" || bang === "message_templates") chk(await sb.from(bang).delete().eq("id", uuid(id)));
     else return loi("Danh mục không hợp lệ.");
@@ -59,7 +59,7 @@ export async function xoaDanhMuc(bang: "lesson_types" | "material_categories" | 
 }
 
 export async function luuCaiDat(_: KQ, fd: FormData): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     const lt = Number(fd.get("lam_tron_diem") ?? 1);
     if (![0, 1, 2].includes(lt)) return loi("Số chữ số làm tròn là 0, 1 hoặc 2.");
     chk(await sb.from("app_settings").upsert([
@@ -77,7 +77,7 @@ const BANG_RAC = ["lessons", "modules", "topics", "assignments", "materials", "c
 type BangRac = (typeof BANG_RAC)[number];
 
 export async function khoiPhuc(bang: BangRac, id: string): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     if (!BANG_RAC.includes(bang)) return loi("Không hợp lệ.");
     const { data: cu } = await sb.from(bang).select("deleted_at").eq("id", uuid(id)).single();
     chk(await sb.from(bang).update({ deleted_at: null }).eq("id", id));
@@ -90,7 +90,7 @@ export async function khoiPhuc(bang: BangRac, id: string): Promise<KQ> {
 }
 
 export async function xoaVinhVien(bang: BangRac, id: string): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     if (!BANG_RAC.includes(bang)) return loi("Không hợp lệ.");
     const x = uuid(id);
     if (bang === "assignments") {
@@ -109,6 +109,7 @@ export async function xoaVinhVien(bang: BangRac, id: string): Promise<KQ> {
         if (!count) await xoaFile("materials", [m.file_path]);
       }
     } else if (bang === "profiles") {
+      await kiemTraHs(sb, [x]); // khóa service_role bỏ qua RLS → tự kiểm tra
       const { error } = await createAdminClient().auth.admin.deleteUser(x);
       if (error) return loi("Chưa xóa được tài khoản: " + error.message);
     } else {
@@ -122,7 +123,7 @@ export async function xoaVinhVien(bang: BangRac, id: string): Promise<KQ> {
 
 /** Làm sạch: xóa vĩnh viễn mọi mục đã nằm trong thùng rác quá 30 ngày */
 export async function lamSachThungRac(): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     const moc = new Date(Date.now() - 30 * 864e5).toISOString();
     // File tài liệu sắp bị xóa
     const { data: mats } = await sb.from("materials").select("id, file_path").lt("deleted_at", moc);
@@ -135,7 +136,7 @@ export async function lamSachThungRac(): Promise<KQ> {
     }
     // Học sinh / lớp / chương trình quá 30 ngày
     const admin = createAdminClient();
-    const { data: hs } = await sb.from("profiles").select("id").lt("deleted_at", moc);
+    const { data: hs } = await sb.from("profiles").select("id").eq("vai_tro", "hoc_sinh").lt("deleted_at", moc); // GV bị khóa KHÔNG bị xóa
     for (const h of hs ?? []) await admin.auth.admin.deleteUser(h.id);
     await sb.from("classes").delete().lt("deleted_at", moc);
     await sb.from("curricula").delete().lt("deleted_at", moc);

@@ -4,12 +4,12 @@ import { getProfile } from "@/lib/auth";
 import { fromVNInput, addDays } from "@/lib/domain/time";
 import { buoiLop } from "@/lib/server/data";
 import { ghiNhatKy } from "@/lib/server/audit";
-import { chay, chk, loi, ok, str, uuid } from "./_util";
+import { chay, chayQt, chk, kiemTraLop, loi, ok, str, uuid } from "./_util";
 import type { KQ } from "@/lib/types";
 
 /** Thêm / sửa lớp */
 export async function luuLop(_: KQ, fd: FormData): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     const id = str(fd, "id");
     const ten = str(fd, "ten_lop", 50);
     const namHoc = str(fd, "nam_hoc", 20);
@@ -18,9 +18,9 @@ export async function luuLop(_: KQ, fd: FormData): Promise<KQ> {
       chk(await sb.from("classes").update({ ten_lop: ten, nam_hoc: namHoc }).eq("id", uuid(id)));
     } else {
       const { data } = chk(await sb.from("classes").insert({ ten_lop: ten, nam_hoc: namHoc || "2026-2027" }).select("id").single());
-      // Gán giáo viên phụ trách (MVP: mọi giáo viên)
-      const { data: gvs } = await sb.from("profiles").select("id").eq("vai_tro", "giao_vien").is("deleted_at", null);
-      if (gvs?.length && data) await sb.from("class_teachers").insert(gvs.map((g) => ({ class_id: data.id, teacher_id: g.id })));
+      // Giáo viên phụ trách: chọn trong form (ô "gv"); quản trị luôn thấy mọi lớp nên không cần gán
+      const gvs = fd.getAll("gv").map(String).filter((x) => /^[0-9a-f-]{36}$/i.test(x));
+      if (gvs.length && data) chk(await sb.from("class_teachers").insert(gvs.map((g) => ({ class_id: data.id, teacher_id: g }))));
     }
     revalidatePath("/gv", "layout");
     return ok(id ? "Đã lưu lớp" : "Đã thêm lớp");
@@ -28,7 +28,7 @@ export async function luuLop(_: KQ, fd: FormData): Promise<KQ> {
 }
 
 export async function luuTruLop(id: string, luuTru: boolean): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     chk(await sb.from("classes").update({ archived: luuTru }).eq("id", uuid(id)));
     revalidatePath("/gv", "layout");
     return ok(luuTru ? "Đã lưu trữ lớp" : "Đã bỏ lưu trữ");
@@ -36,7 +36,7 @@ export async function luuTruLop(id: string, luuTru: boolean): Promise<KQ> {
 }
 
 export async function xoaLop(id: string): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     chk(await sb.from("classes").update({ deleted_at: new Date().toISOString() }).eq("id", uuid(id)));
     await ghiNhatKy("xoa", "classes", id);
     revalidatePath("/gv", "layout");
@@ -46,10 +46,12 @@ export async function xoaLop(id: string): Promise<KQ> {
 
 /** Gán giáo viên phụ trách lớp */
 export async function ganGiaoVien(classId: string, teacherIds: string[]): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     const c = uuid(classId);
     chk(await sb.from("class_teachers").delete().eq("class_id", c));
     if (teacherIds.length) chk(await sb.from("class_teachers").insert(teacherIds.map((t) => ({ class_id: c, teacher_id: uuid(t) }))));
+    await ghiNhatKy("gan_gv", "class_teachers", c, null, { giao_vien: teacherIds });
+    revalidatePath("/gv", "layout");
     return ok("Đã lưu giáo viên phụ trách");
   });
 }
@@ -57,6 +59,7 @@ export async function ganGiaoVien(classId: string, teacherIds: string[]): Promis
 /** Cập nhật tình trạng một buổi trong lớp: ngày học, hiện/ẩn, hẹn giờ mở, đã dạy, ghi chú */
 export async function capNhatBuoiLop(classId: string, lessonId: string, v: { ngay_hoc?: string | null; hien_thi?: boolean; ngay_mo?: string | null; da_day?: boolean; ghi_chu?: string }): Promise<KQ> {
   return chay(async (sb) => {
+    await kiemTraLop(sb, classId);
     const patch: Record<string, unknown> = {};
     if (v.ngay_hoc !== undefined) patch.ngay_hoc = v.ngay_hoc && /^\d{4}-\d{2}-\d{2}$/.test(v.ngay_hoc) ? v.ngay_hoc : null;
     if (v.hien_thi !== undefined) patch.hien_thi = v.hien_thi;
@@ -92,6 +95,7 @@ export async function dangThongBao(_: KQ, fd: FormData): Promise<KQ> {
     const lops = fd.getAll("lop").map(String).filter(Boolean).map(uuid);
     if (!nd) return loi("Chưa có nội dung.");
     if (!lops.length) return loi("Chọn ít nhất một lớp nhận.");
+    for (const c of lops) await kiemTraLop(sb, c);
     chk(await sb.from("announcements").insert(lops.map((c) => ({ class_id: c, noi_dung: nd }))));
     revalidatePath("/gv", "layout");
     return ok(`Đã đăng cho ${lops.length} lớp`);

@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient, emailAo } from "@/lib/supabase/admin";
 import { taoMatKhauTam } from "@/lib/domain/password";
 import { ghiNhatKy } from "@/lib/server/audit";
-import { chay, chk, loi, ok, str, uuid } from "./_util";
+import { chay, chk, kiemTraHs, kiemTraLop, loi, ok, str, uuid } from "./_util";
 import type { KQ } from "@/lib/types";
 
 export interface TaiKhoanTam { ma_hs: string; ho_ten: string; mat_khau: string }
@@ -26,6 +26,7 @@ export async function taoTaiKhoan(classId: string, ds: { ma_hs?: string; ho_ten:
     const c = uuid(classId);
     if (ds.length === 0) return loi("Danh sách trống.");
     if (ds.length > 200) return loi("Mỗi lần tối đa 200 học sinh.");
+    await kiemTraLop(sb, c); // khóa service_role bỏ qua RLS → phải tự kiểm tra lớp
     const { data: lop } = await sb.from("classes").select("nam_hoc").eq("id", c).single();
     const admin = createAdminClient();
     const ketQua: TaiKhoanTam[] = [];
@@ -55,9 +56,10 @@ export async function taoTaiKhoan(classId: string, ds: { ma_hs?: string; ho_ten:
 /** Reset mật khẩu (một hoặc nhiều em): mật khẩu tạm mới + bắt đổi lại một lần */
 export async function resetMatKhau(ids: string[]): Promise<KQ> {
   return chay(async (sb) => {
+    const duocPhep = await kiemTraHs(sb, ids.slice(0, 200));
     const admin = createAdminClient();
     const out: TaiKhoanTam[] = [];
-    for (const id of ids.slice(0, 200).map(uuid)) {
+    for (const id of duocPhep) {
       const { data: p } = await sb.from("profiles").select("ma_hs, ho_ten, vai_tro").eq("id", id).single();
       if (!p || p.vai_tro !== "hoc_sinh") continue;
       const mk = taoMatKhauTam();
@@ -80,6 +82,7 @@ export async function suaHocSinh(_: KQ, fd: FormData): Promise<KQ> {
     const ma = str(fd, "ma_hs", 30).toUpperCase();
     if (!hoTen) return loi("Nhập họ tên.");
     if (!MA_RE.test(ma)) return loi("Mã học sinh chỉ gồm chữ không dấu, số, . _ -");
+    await kiemTraHs(sb, [id]);
     const { data: cu } = await sb.from("profiles").select("ma_hs, ho_ten").eq("id", id).single();
     if (cu && cu.ma_hs.toUpperCase() !== ma) {
       const admin = createAdminClient();
@@ -99,6 +102,8 @@ export async function suaHocSinh(_: KQ, fd: FormData): Promise<KQ> {
 export async function chuyenLop(studentId: string, classId: string): Promise<KQ> {
   return chay(async (sb) => {
     const s = uuid(studentId), c = uuid(classId);
+    await kiemTraHs(sb, [s]);
+    await kiemTraLop(sb, c);
     const homNay = new Date().toISOString().slice(0, 10);
     const { data: lop } = await sb.from("classes").select("nam_hoc, ten_lop").eq("id", c).single();
     chk(await sb.from("enrollments").update({ den_ngay: homNay }).eq("student_id", s).is("den_ngay", null));

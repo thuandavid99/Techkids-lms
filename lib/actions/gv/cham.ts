@@ -5,7 +5,7 @@ import { fromVNInput } from "@/lib/domain/time";
 import { laVanBanUtf8 } from "@/lib/domain/files";
 import { ghiNhatKy } from "@/lib/server/audit";
 import { xoaFile } from "@/lib/server/storage";
-import { chay, chk, loi, ok, uuid } from "./_util";
+import { chay, chk, loi, ok, uuid, kiemTraHs } from "./_util";
 import type { KQ } from "@/lib/types";
 
 /**
@@ -73,7 +73,8 @@ export async function thaoTacO(assignmentId: string, studentId: string, hanhDong
 
 /** Thầy nộp hộ (dán code của học sinh) */
 export async function nopHo(assignmentId: string, studentId: string, code: string): Promise<KQ> {
-  return chay(async () => {
+  return chay(async (sb) => {
+    await kiemTraHs(sb, [studentId]); // khóa service_role bỏ qua RLS → tự kiểm tra
     const bytes = new TextEncoder().encode(code);
     if (!code.trim()) return loi("Chưa có nội dung.");
     if (bytes.length > 1024 * 1024 || !laVanBanUtf8(bytes)) return loi("Nội dung không hợp lệ hoặc quá dài.");

@@ -4,7 +4,8 @@ import { keyBetween, keysBetween, cmpKey } from "@/lib/domain/order";
 import { chuanHoaNhanBuoi, soTrongNhan } from "@/lib/domain/naming";
 import { tinhNgayHoc } from "@/lib/domain/schedule";
 import { ghiNhatKy } from "@/lib/server/audit";
-import { chay, chk, loi, ok, str, uuid } from "./_util";
+import { chay, chayQt, chk, kiemTraLop, loi, ok, str, uuid } from "./_util";
+import { getProfile, laQuanTri } from "@/lib/auth";
 import type { KQ } from "@/lib/types";
 import type { createClient } from "@/lib/supabase/server";
 
@@ -13,7 +14,7 @@ const xong = () => revalidatePath("/gv", "layout");
 
 // ---------------- CHƯƠNG TRÌNH ----------------
 export async function taoChuongTrinh(_: KQ, fd: FormData): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     const ten = str(fd, "ten", 200);
     if (!ten) return loi("Nhập tên chương trình.");
     const { data } = chk(await sb.from("curricula").insert({ ten, mo_ta: str(fd, "mo_ta", 1000) || null, nam_hoc: str(fd, "nam_hoc", 20) || null }).select("id").single());
@@ -24,7 +25,7 @@ export async function taoChuongTrinh(_: KQ, fd: FormData): Promise<KQ> {
 }
 
 export async function suaChuongTrinh(id: string, ten: string, moTa: string): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     if (!ten.trim()) return loi("Nhập tên chương trình.");
     chk(await sb.from("curricula").update({ ten: ten.slice(0, 200), mo_ta: moTa.slice(0, 1000) || null }).eq("id", uuid(id)));
     xong();
@@ -33,7 +34,7 @@ export async function suaChuongTrinh(id: string, ten: string, moTa: string): Pro
 }
 
 export async function xoaChuongTrinh(id: string): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     const { count } = await sb.from("class_curriculum").select("class_id", { count: "exact", head: true }).eq("curriculum_id", uuid(id));
     if (count) return loi(`Chương trình đang được ${count} lớp sử dụng. Hãy đổi chương trình cho các lớp đó trước.`);
     chk(await sb.from("curricula").update({ deleted_at: new Date().toISOString() }).eq("id", id));
@@ -45,7 +46,7 @@ export async function xoaChuongTrinh(id: string): Promise<KQ> {
 
 /** Nhân bản chương trình (module, chủ đề, buổi, bài tập, tài liệu) để làm bản cho năm sau */
 export async function nhanBanChuongTrinh(id: string): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     const ct = uuid(id);
     const { data: cur } = await sb.from("curricula").select("*").eq("id", ct).single();
     const { data: moi } = chk(await sb.from("curricula").insert({ ten: `${cur!.ten} (bản sao)`, mo_ta: cur!.mo_ta, nam_hoc: cur!.nam_hoc }).select("id").single());
@@ -95,7 +96,7 @@ async function saoNoiDungBuoi(sb: SB, cap: [string, string][]) {
 
 // ---------------- MODULE ----------------
 export async function themModule(ctId: string, ten: string): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     const ct = uuid(ctId);
     const { data: ds } = await sb.from("modules").select("thu_tu").eq("curriculum_id", ct).is("deleted_at", null);
     const cuoi = (ds ?? []).map((m) => m.thu_tu).sort(cmpKey).at(-1) ?? null;
@@ -106,7 +107,7 @@ export async function themModule(ctId: string, ten: string): Promise<KQ> {
 }
 
 export async function suaModule(id: string, ten: string): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     if (!ten.trim()) return loi("Nhập tên module.");
     chk(await sb.from("modules").update({ ten: ten.slice(0, 200) }).eq("id", uuid(id)));
     xong();
@@ -115,7 +116,7 @@ export async function suaModule(id: string, ten: string): Promise<KQ> {
 }
 
 export async function diChuyenModule(id: string, huong: "len" | "xuong"): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     const { data: m } = await sb.from("modules").select("curriculum_id, thu_tu").eq("id", uuid(id)).single();
     const { data: ds } = await sb.from("modules").select("id, thu_tu").eq("curriculum_id", m!.curriculum_id).is("deleted_at", null);
     const s = (ds ?? []).sort((a, b) => cmpKey(a.thu_tu, b.thu_tu));
@@ -131,7 +132,7 @@ export async function diChuyenModule(id: string, huong: "len" | "xuong"): Promis
 
 /** Xóa module: module + các buổi trong module vào thùng rác cùng lúc (khôi phục cùng nhau) */
 export async function xoaModule(id: string): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     const t = new Date().toISOString();
     chk(await sb.from("lessons").update({ deleted_at: t }).eq("module_id", uuid(id)).is("deleted_at", null));
     chk(await sb.from("modules").update({ deleted_at: t }).eq("id", id));
@@ -152,7 +153,7 @@ async function buoiTrongModule(sb: SB, ctId: string, moduleId: string | null) {
 /** Thêm buổi: sau buổi `sauId` (null = cuối module) hoặc trước buổi `truocId` */
 export async function themBuoi(ctId: string, moduleId0: string | null, vt: { sauId?: string; truocId?: string } = {}): Promise<KQ> {
   const moduleId = moduleId0 || null; // "" = buổi chưa xếp module
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     const ct = uuid(ctId);
     const ds = await buoiTrongModule(sb, ct, moduleId ? uuid(moduleId) : null);
     let a: string | null = null, b: string | null = null;
@@ -173,7 +174,7 @@ export async function themBuoi(ctId: string, moduleId0: string | null, vt: { sau
 /** Kéo thả: đặt buổi vào module `moduleId`, ngay sau buổi `sauId` (null = đầu module) */
 export async function diChuyenBuoi(lessonId: string, moduleId0: string | null, sauId: string | null): Promise<KQ> {
   const moduleId = moduleId0 || null;
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     const { data: l } = await sb.from("lessons").select("curriculum_id, module_id").eq("id", uuid(lessonId)).single();
     const ds = (await buoiTrongModule(sb, l!.curriculum_id, moduleId)).filter((x) => x.id !== lessonId);
     const i = sauId ? ds.findIndex((x) => x.id === sauId) : -1;
@@ -187,7 +188,7 @@ export async function diChuyenBuoi(lessonId: string, moduleId0: string | null, s
 }
 
 export async function nhanBanBuoi(lessonId: string): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     const { data: l } = await sb.from("lessons").select("*").eq("id", uuid(lessonId)).single();
     const ds = await buoiTrongModule(sb, l!.curriculum_id, l!.module_id);
     const i = ds.findIndex((x) => x.id === lessonId);
@@ -203,7 +204,7 @@ export async function nhanBanBuoi(lessonId: string): Promise<KQ> {
 
 /** Ẩn/hiện buổi với MỌI lớp (thay vì xóa khi đã có bài nộp) */
 export async function anBuoi(lessonId: string, an: boolean): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     chk(await sb.from("class_lessons").update({ hien_thi: !an }).eq("lesson_id", uuid(lessonId)));
     await ghiNhatKy(an ? "an" : "hien", "lessons", lessonId);
     xong();
@@ -212,7 +213,7 @@ export async function anBuoi(lessonId: string, an: boolean): Promise<KQ> {
 }
 
 export async function xoaBuoi(lessonId: string): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     chk(await sb.from("lessons").update({ deleted_at: new Date().toISOString() }).eq("id", uuid(lessonId)));
     await ghiNhatKy("xoa", "lessons", lessonId);
     xong();
@@ -222,7 +223,7 @@ export async function xoaBuoi(lessonId: string): Promise<KQ> {
 
 /** Gộp với buổi ngay sau (cùng module): "7" + "8" → "7–8"; bài tập/tài liệu chuyển sang buổi đầu */
 export async function gopBuoi(lessonId: string): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     const { data: l } = await sb.from("lessons").select("curriculum_id, module_id, nhan_buoi").eq("id", uuid(lessonId)).single();
     const ds = await buoiTrongModule(sb, l!.curriculum_id, l!.module_id);
     const i = ds.findIndex((x) => x.id === lessonId);
@@ -242,7 +243,7 @@ export async function gopBuoi(lessonId: string): Promise<KQ> {
 
 /** Tách buổi gộp "10–11" → "10" và "11" (buổi mới chưa có bài tập) */
 export async function tachBuoi(lessonId: string): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     const { data: l } = await sb.from("lessons").select("*").eq("id", uuid(lessonId)).single();
     const so = soTrongNhan(l!.nhan_buoi);
     if (so.length < 2) return loi("Buổi này không phải buổi gộp (ví dụ 10–11).");
@@ -266,10 +267,18 @@ export async function luuBuoi(_: KQ, fd: FormData): Promise<KQ> {
   return chay(async (sb) => {
     const id = uuid(fd.get("id"));
     const phamVi = str(fd, "pham_vi") || "tat_ca";
+    const qt = laQuanTri(await getProfile());
+    // Giáo viên thường chỉ sửa BẢN RIÊNG cho lớp mình phụ trách
+    if (phamVi === "tat_ca" && !qt) {
+      // Buổi RIÊNG của lớp mình thì giáo viên sửa thẳng được
+      const { data: duoc } = await sb.rpc("can_edit_lesson", { p_lesson: id });
+      if (!duoc) return loi("Chỉ quản trị sửa được nội dung chung. Thầy/cô chọn \"Chỉ lớp …\" để sửa riêng cho lớp mình.");
+    }
+    if (phamVi !== "tat_ca") await kiemTraLop(sb, phamVi);
     const nhap = fd.get("nut") === "nhap";
     const moduleId = str(fd, "module_id") || null;
     let topicId = str(fd, "topic_id") || null;
-    const chuDeMoi = str(fd, "chu_de_moi", 200);
+    const chuDeMoi = qt ? str(fd, "chu_de_moi", 200) : "";
     if (chuDeMoi && moduleId) {
       const { data: t } = chk(await sb.from("topics").insert({ module_id: uuid(moduleId), ten: chuDeMoi, thu_tu: keyBetween(null, null) }).select("id").single());
       topicId = t!.id;
@@ -305,6 +314,7 @@ export async function luuBuoi(_: KQ, fd: FormData): Promise<KQ> {
 /** Bỏ bản ghi đè riêng của lớp (quay về dùng nội dung chung) */
 export async function boBanRieng(lessonId: string, classId: string): Promise<KQ> {
   return chay(async (sb) => {
+    await kiemTraLop(sb, classId);
     chk(await sb.from("lessons").update({ deleted_at: new Date().toISOString() }).eq("ghi_de_cua", uuid(lessonId)).eq("class_id", uuid(classId)));
     xong();
     return ok("Lớp này đã quay về dùng nội dung chung");
@@ -314,6 +324,7 @@ export async function boBanRieng(lessonId: string, classId: string): Promise<KQ>
 /** Thêm buổi RIÊNG cho một lớp (ví dụ buổi bồi dưỡng) */
 export async function themBuoiRieng(ctId: string, moduleId: string | null, classId: string): Promise<KQ> {
   return chay(async (sb) => {
+    await kiemTraLop(sb, classId);
     const ds = await buoiTrongModule(sb, uuid(ctId), moduleId);
     const { data } = chk(await sb.from("lessons").insert({ curriculum_id: ctId, module_id: moduleId, thu_tu: keyBetween(ds.at(-1)?.thu_tu ?? null, null), tieu_de: "Buổi riêng của lớp", class_id: uuid(classId) }).select("id").single());
     xong();
@@ -328,7 +339,7 @@ export interface PPCTNhap {
 }
 
 export async function taoTuPPCT(input: PPCTNhap): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     if (!input.modules.length) return loi("Không có buổi học nào để nhập.");
     if (input.modules.reduce((s, m) => s + m.buoi.length, 0) > 500) return loi("Tối đa 500 buổi mỗi lần nhập.");
     let ct: string;
@@ -378,6 +389,7 @@ export async function taoTuPPCT(input: PPCTNhap): Promise<KQ> {
 export async function apDungChoLop(input: { classId: string; ctId: string; ngayBatDau: string; thu: number[]; ngay: Record<string, string> }): Promise<KQ> {
   return chay(async (sb) => {
     const c = uuid(input.classId), ct = uuid(input.ctId);
+    await kiemTraLop(sb, c);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(input.ngayBatDau)) return loi("Chọn ngày bắt đầu.");
     if (!input.thu.length) return loi("Chọn ít nhất một thứ học trong tuần.");
     chk(await sb.from("class_curriculum").upsert({ class_id: c, curriculum_id: ct, ngay_bat_dau: input.ngayBatDau, cac_thu_trong_tuan: input.thu.filter((t) => t >= 1 && t <= 7) }));

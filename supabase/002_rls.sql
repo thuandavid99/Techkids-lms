@@ -11,7 +11,7 @@ create or replace function public.is_teacher()
 returns boolean language sql stable security definer set search_path = public as $$
   select exists (
     select 1 from public.profiles
-    where id = auth.uid() and vai_tro in ('giao_vien','tro_giang') and deleted_at is null
+    where id = auth.uid() and vai_tro in ('giao_vien','tro_giang','quan_tri') and deleted_at is null
   );
 $$;
 

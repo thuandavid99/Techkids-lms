@@ -5,7 +5,8 @@ export function supabaseUrl(): string {
   return v;
 }
 export function supabaseAnonKey(): string {
-  const v = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!v) throw new Error("Thiếu NEXT_PUBLIC_SUPABASE_ANON_KEY trong .env.local (xem README bước 6).");
+  // Nhận cả tên cũ (ANON_KEY) và tên mới Supabase hiện dùng (PUBLISHABLE_KEY)
+  const v = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!v) throw new Error("Thiếu NEXT_PUBLIC_SUPABASE_ANON_KEY (hoặc NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) trong .env.local (xem README bước 6).");
   return v;
 }

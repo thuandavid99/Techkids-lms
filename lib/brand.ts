@@ -27,6 +27,7 @@ export const IMG = {
   celebrate: "/images/robot-celebrate.png",
   tablet: "/images/robot-tablet.png",
   clipboard: "/images/robot-clipboard.png",
+  clipboardGv: "/images/robot-clipboard-gv.png", // bản đã tách nền, dùng trên nền tối (trang /giao-vien)
   cheer: "/images/robot-cheer.png",
   books: "/images/robot-books.png",
   check: "/images/robot-check.png",

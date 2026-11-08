@@ -1,6 +1,6 @@
 // Kiểu dữ liệu dùng chung (khớp tên cột trong supabase/001_schema.sql)
 
-export type VaiTro = "hoc_sinh" | "giao_vien" | "tro_giang";
+export type VaiTro = "hoc_sinh" | "giao_vien" | "tro_giang" | "quan_tri";
 
 export interface Profile {
   id: string;
@@ -12,6 +12,7 @@ export interface Profile {
   dang_hoc: boolean;
   avatar: string;
   deleted_at: string | null;
+  email?: string | null;
 }
 
 export interface Lop { id: string; ten_lop: string; nam_hoc: string; archived: boolean; deleted_at: string | null }

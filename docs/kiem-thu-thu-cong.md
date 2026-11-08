@@ -59,3 +59,28 @@
 ## G. Thùng rác & trạng thái
 - [ ] Xóa buổi → vào Thùng rác → Khôi phục; Xóa vĩnh viễn (cảnh báo "Không thể khôi phục"); Làm sạch.
 - [ ] Mỗi màn: đang tải (khung xương), rỗng (hình + gợi ý), lỗi (tắt mạng → Thử lại), 404 (`/abc`).
+
+## H. Phân loại tài khoản (Quản trị / Giáo viên)
+- [ ] Chạy `005_giao_vien_rieng.sql` → `select ho_ten, vai_tro, email from profiles where vai_tro <> 'hoc_sinh';` thấy tài khoản thầy Thuận là `quan_tri`.
+- [ ] Vào `/giao-vien`: trang nền navy, nhãn "Khu vực giáo viên", ô **Email**. Học sinh đăng nhập ở đây → báo "Đây là tài khoản học sinh…".
+- [ ] Quản trị → menu **Giáo viên** → Thêm cô Lan (email, chọn lớp 6A1) → hiện mật khẩu tạm 1 lần → Sao chép.
+- [ ] Cửa sổ ẩn danh: cô Lan đăng nhập `/giao-vien` → bị bắt đặt mật khẩu mới (≥ 8 ký tự) → vào Tổng quan.
+- [ ] Cô Lan: sidebar có nhãn **Giáo viên**, menu "Lớp của tôi", **không** có mục "Giáo viên"; ô chọn lớp chỉ có 6A1.
+- [ ] Cô Lan gõ thẳng `/gv/lop/<id lớp 6A2>` → không thấy dữ liệu; `/gv/giao-vien`, `/gv/cai-dat/thung-rac`, `/gv/chuong-trinh/nhap-excel` → "chỉ dành cho tài khoản quản trị".
+- [ ] Cô Lan mở một buổi chung → chỉ có lựa chọn "Chỉ lớp 6A1" → lưu → lớp 6A2 không đổi.
+- [ ] Cô Lan chấm bài lớp 6A1 được; thông báo "Em chưa làm được" của 6A2 không tới cô Lan.
+- [ ] Quản trị **Khóa** cô Lan → cô Lan bị đẩy ra / không đăng nhập được ("Tài khoản này đã bị khóa"). **Mở khóa** → vào lại được.
+- [ ] Quản trị không tự khóa / tự hạ quyền được khi là quản trị cuối cùng.
+
+## I. Chạy thử code (kiểu W3Schools)
+- [ ] Làm bài → gõ `print("Xin chào")` → **▶ Chạy** → kết quả hiện bên phải (lần đầu chờ tải vài giây).
+- [ ] Bài có `input()`: mở **Dữ liệu vào**, gõ `5` → chạy → thấy `Nhập n: 5` và kết quả.
+- [ ] Thiếu dữ liệu vào → báo EOFError + gợi ý điền "Dữ liệu vào".
+- [ ] Sai thụt lề / sai tên biến → thông báo lỗi ngắn + 💡 gợi ý tiếng Việt + số dòng.
+- [ ] `while True: pass` → tự dừng sau 10 giây, trang không bị treo; bấm Chạy lại vẫn được.
+- [ ] Ctrl + Enter chạy được; trên điện thoại khung kết quả nằm dưới ô code.
+- [ ] Giáo viên: Chấm bài → **▶ Chạy thử bài của em**.
+
+## J. Tốc độ
+- [ ] Trên Vercel: Settings → Functions → Function Regions = **Singapore (sin1)**.
+- [ ] Bấm chuyển trang: thanh cam mảnh chạy ở mép trên ngay lập tức, khung xương hiện trong lúc tải.

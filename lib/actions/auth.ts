@@ -10,18 +10,25 @@ import type { KQ } from "@/lib/types";
 
 const loi = (s: string): KQ => ({ ok: false, loi: s, ts: Date.now() });
 
-/** Đăng nhập bằng MÃ HỌC SINH + mật khẩu (giáo viên: tên đăng nhập hoặc email) */
+/**
+ * Đăng nhập. Hai cửa riêng:
+ *  - khu = "hs" (trang /dang-nhap): MÃ HỌC SINH + mật khẩu
+ *  - khu = "gv" (trang /giao-vien): EMAIL (hoặc tên đăng nhập) + mật khẩu
+ * Đăng nhập nhầm cửa vẫn được đưa về đúng khu vực của mình, trừ học sinh vào cửa giáo viên.
+ */
 export async function dangNhap(_: KQ, fd: FormData): Promise<KQ> {
   const ma = String(fd.get("ma") ?? "").trim();
   const mk = String(fd.get("mat_khau") ?? "");
-  if (!ma || !mk) return loi("Vui lòng nhập mã học sinh và mật khẩu.");
+  const khu = fd.get("khu") === "gv" ? "gv" : "hs";
+  if (!ma || !mk) return loi(khu === "gv" ? "Vui lòng nhập email và mật khẩu." : "Vui lòng nhập mã học sinh và mật khẩu.");
   if (ma.length > 100 || mk.length > 100) return loi("Thông tin không hợp lệ.");
   const email = ma.includes("@") ? ma.toLowerCase() : emailAo(ma);
 
   const sb = await createClient();
   const { data, error } = await sb.auth.signInWithPassword({ email, password: mk });
   if (error || !data.user) {
-    if (/invalid login credentials/i.test(error?.message ?? "")) return loi("Mã học sinh hoặc mật khẩu chưa đúng. Kiểm tra lại chữ HOA/thường nhé.");
+    if (/invalid login credentials/i.test(error?.message ?? "")) return loi(khu === "gv" ? "Email hoặc mật khẩu chưa đúng." : "Mã học sinh hoặc mật khẩu chưa đúng. Kiểm tra lại chữ HOA/thường nhé.");
+    if (/banned/i.test(error?.message ?? "")) return loi("Tài khoản này đã bị khóa. Liên hệ quản trị.");
     return loi("Chưa đăng nhập được. Kiểm tra mạng rồi thử lại.");
   }
   const { data: p } = await sb.from("profiles").select("vai_tro, must_change_password, deleted_at").eq("id", data.user.id).maybeSingle();
@@ -29,26 +36,32 @@ export async function dangNhap(_: KQ, fd: FormData): Promise<KQ> {
     await sb.auth.signOut();
     return loi("Tài khoản này không còn hoạt động. Em hỏi thầy nhé.");
   }
-  if (p.vai_tro !== "hoc_sinh") redirect("/gv");
+  if (p.vai_tro === "hoc_sinh" && khu === "gv") {
+    await sb.auth.signOut();
+    return loi("Đây là tài khoản học sinh. Em đăng nhập ở trang dành cho học sinh nhé.");
+  }
+  if (p.vai_tro !== "hoc_sinh") redirect(p.must_change_password ? "/doi-mat-khau-lan-dau" : "/gv");
   if (p.must_change_password) redirect("/doi-mat-khau-lan-dau");
   redirect("/");
 }
 
 export async function dangXuat() {
+  const p = await getProfile();
   const sb = await createClient();
   await sb.auth.signOut();
-  redirect("/dang-nhap");
+  redirect(p && p.vai_tro !== "hoc_sinh" ? "/giao-vien" : "/dang-nhap");
 }
 
 /** Học sinh đổi mật khẩu LẦN ĐẦU (lần tự đổi duy nhất; mỗi lần thầy reset cho thêm đúng 1 lần) */
 export async function doiMatKhauLanDau(_: KQ, fd: FormData): Promise<KQ> {
   const p = await getProfile();
   if (!p) return loi("Phiên đăng nhập đã hết. Đăng nhập lại nhé.");
-  if (!p.must_change_password) return loi("Tài khoản đã đổi mật khẩu rồi. Nếu quên mật khẩu, em nhờ thầy cấp lại.");
+  if (!p.must_change_password) return loi(p.vai_tro === "hoc_sinh" ? "Tài khoản đã đổi mật khẩu rồi. Nếu quên mật khẩu, em nhờ thầy cấp lại." : "Tài khoản đã đổi mật khẩu rồi.");
   const mk = String(fd.get("mat_khau") ?? "");
   const mk2 = String(fd.get("nhap_lai") ?? "");
   const kt = kiemTraMatKhauMoi(mk);
   if (kt) return loi(kt);
+  if (p.vai_tro !== "hoc_sinh" && mk.length < 8) return loi("Mật khẩu giáo viên cần ít nhất 8 ký tự.");
   if (mk !== mk2) return loi("Hai mật khẩu chưa giống nhau.");
 
   const admin = createAdminClient();
@@ -81,8 +94,9 @@ export async function doiMatKhauGv(_: KQ, fd: FormData): Promise<KQ> {
   if (moi.length < 8) return loi("Mật khẩu giáo viên cần ít nhất 8 ký tự.");
   const sb = await createClient();
   const { data: { user } } = await sb.auth.getUser();
+  if (!user?.email) return loi("Phiên đăng nhập đã hết. Đăng nhập lại nhé.");
   const thu = createPlainClient(supabaseUrl(), supabaseAnonKey(), { auth: { persistSession: false } });
-  const { error: e1 } = await thu.auth.signInWithPassword({ email: user!.email!, password: cu });
+  const { error: e1 } = await thu.auth.signInWithPassword({ email: user.email, password: cu });
   if (e1) return loi("Mật khẩu hiện tại chưa đúng.");
   await thu.auth.signOut();
   const { error } = await sb.auth.updateUser({ password: moi });

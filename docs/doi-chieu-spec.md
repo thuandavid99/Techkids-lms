@@ -62,3 +62,11 @@
 | Markdown / code HS | ✅ | `react-markdown` không bật HTML thô; code hiển thị dạng văn bản; không chạy code HS |
 | Độ tương phản | 🟡 | chữ trắng trên cam `#F97316` (bám mockup) chỉ ~2,8:1, dưới chuẩn WCAG AA 4,5:1 → đổi `--color-cam-500` thành `#c2410c` nếu muốn đạt chuẩn |
 | Bàn phím | 🟡 | kéo thả có KeyboardSensor, hộp thoại đóng bằng Esc; chưa thử bằng trình đọc màn hình |
+
+## Bổ sung chat 3 (07/11/2026)
+| Mục | Trạng thái | Ghi chú |
+|---|---|---|
+| Phân loại tài khoản Quản trị / Giáo viên (yêu cầu mới) | ✅ | `005_giao_vien_rieng.sql` + 8 kiểm thử RLS mới (14–21) đạt; menu theo vai trò; trang `/giao-vien`; màn **Giáo viên** cho quản trị |
+| Giáo viên sửa kho học liệu / nhập PPCT / cài đặt hệ thống | — (cố ý) | Chỉ quản trị (quyết định mặc định 7.6 câu 1). Có thể mở rộng sau |
+| Chạy code trong trình duyệt (spec 9.3 "Pyodide" – giai đoạn sau) | ✅ (làm sớm) | Chạy thử, không chấm tự động. Chưa thử được trên trình duyệt thật (máy dựng không tải được CDN) |
+| Tốc độ | ✅ | `getClaims` thay `getUser`; vùng Vercel `sin1`; khung tải + thanh tiến trình |

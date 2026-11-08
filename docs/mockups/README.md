@@ -13,3 +13,6 @@ Cùng phong cách bộ ảnh (sidebar navy, mục chọn cam, thẻ trắng bo 2
 | `gv-phieu-tien-do-in.svg` | Phiếu tiến độ – trang in | `/phieu/[id]` |
 | `hs-doi-mat-khau-lan-dau.svg` | Học sinh đổi mật khẩu lần đầu | `/doi-mat-khau-lan-dau` |
 | `hs-thong-bao.svg` | Học sinh – Thông báo | `/thong-bao` |
+| `gv-dang-nhap.svg` | Trang đăng nhập RIÊNG cho giáo viên (nền navy) | `/giao-vien` |
+| `qt-giao-vien.svg` | Quản trị – danh sách giáo viên + hộp Thêm giáo viên | `/gv/giao-vien` |
+| `hs-lam-bai-chay-thu.svg` | Làm bài: code bên trái, bấm Chạy → kết quả bên phải (kiểu W3Schools) | `/bai-tap/[id]/lam-bai` |

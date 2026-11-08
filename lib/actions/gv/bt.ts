@@ -6,7 +6,10 @@ import { keyBetween } from "@/lib/domain/order";
 import { soTrongNhan } from "@/lib/domain/naming";
 import { capLinkTaiLen, tenLuuAnToan, xacMinhFile, xoaFile } from "@/lib/server/storage";
 import { ghiNhatKy } from "@/lib/server/audit";
-import { chay, chk, loi, ok, str, bool, uuid } from "./_util";
+import { chay, chk, kiemTraLop, loi, ok, str, bool, uuid } from "./_util";
+import { getProfile, laQuanTri } from "@/lib/auth";
+
+const KHONG_QUYEN = "Bạn không có quyền sửa bài tập này (bài chung chỉ quản trị sửa; giáo viên sửa bản riêng cho lớp mình).";
 import type { KQ } from "@/lib/types";
 
 const COT = ["ma", "tieu_de", "de_bai", "diem_toi_da", "loai_nop", "cho_nop_tre", "khoa_nop", "tinh_diem", "bat_buoc", "he_so", "hoc_ky", "hien_thi"] as const;
@@ -16,7 +19,7 @@ export async function themBaiTap(lessonId: string): Promise<KQ> {
   return chay(async (sb) => {
     const l = uuid(lessonId);
     const [{ data: buoi }, { data: ds }, { data: cd }] = await Promise.all([
-      sb.from("lessons").select("nhan_buoi, loai_id, lesson_types(co_bai_nop_mac_dinh, tinh_diem)").eq("id", l).single(),
+      sb.from("lessons").select("nhan_buoi, loai_id, class_id, lesson_types(co_bai_nop_mac_dinh, tinh_diem)").eq("id", l).single(),
       sb.from("assignments").select("thu_tu").eq("lesson_id", l).is("ghi_de_cua", null).order("thu_tu", { ascending: false }),
       sb.from("app_settings").select("value").eq("key", "cho_nop_tre_mac_dinh").maybeSingle(),
     ]);
@@ -26,6 +29,7 @@ export async function themBaiTap(lessonId: string): Promise<KQ> {
       lesson_id: l, ma: so ? `${so}.${(ds?.length ?? 0) + 1}` : String((ds?.length ?? 0) + 1),
       tieu_de: "Bài tập mới", loai_nop: "code", thu_tu: keyBetween(ds?.[0]?.thu_tu ?? null, null),
       cho_nop_tre: cd?.value !== false, tinh_diem: lt?.tinh_diem ?? true,
+      class_id: buoi?.class_id ?? null, // buổi riêng của lớp → bài tập cũng thuộc lớp đó
     }).select("id").single());
     revalidatePath("/gv", "layout");
     return ok("Đã thêm bài tập", data!.id);
@@ -37,6 +41,12 @@ export async function luuBaiTap(_: KQ, fd: FormData): Promise<KQ> {
   return chay(async (sb) => {
     const id = uuid(fd.get("id"));
     const phamVi = str(fd, "pham_vi") || "tat_ca";
+    if (phamVi === "tat_ca" && !laQuanTri(await getProfile())) {
+      // Giáo viên thường: chỉ sửa được bài thuộc buổi riêng của lớp mình
+      const { data: ok_ } = await sb.rpc("can_edit_assignment", { p_assignment: id });
+      if (!ok_) return loi("Chỉ quản trị sửa được bài tập chung. Thầy/cô chọn \"Chỉ lớp …\" để sửa riêng cho lớp mình.");
+    }
+    if (phamVi !== "tat_ca") await kiemTraLop(sb, phamVi);
     const v = {
       ma: str(fd, "ma", 20), tieu_de: str(fd, "tieu_de", 200), de_bai: str(fd, "de_bai", 20000) || null,
       diem_toi_da: Number(fd.get("diem_toi_da") || 10), loai_nop: str(fd, "loai_nop"),
@@ -52,7 +62,7 @@ export async function luuBaiTap(_: KQ, fd: FormData): Promise<KQ> {
     if (phamVi === "tat_ca") {
       const { data: cu } = await sb.from("assignments").select(COT.join(",")).eq("id", id).single();
       chk(await sb.from("assignments").update(v).eq("id", id));
-      if (cu && (cu as unknown as Record<string, unknown>).hien_thi !== v.hien_thi && !v.hien_thi) await ghiNhatKy("an", "assignments", id);
+      if (cu && (cu as Record<string, unknown>).hien_thi !== v.hien_thi && !v.hien_thi) await ghiNhatKy("an", "assignments", id);
       await ghiNhatKy("sua", "assignments", id, cu, v);
     } else {
       const c = uuid(phamVi);
@@ -76,6 +86,7 @@ export async function luuBaiTap(_: KQ, fd: FormData): Promise<KQ> {
 export async function datHanNop(assignmentId: string, classId: string, hanVN: string): Promise<KQ> {
   return chay(async (sb) => {
     const a = uuid(assignmentId), c = uuid(classId);
+    await kiemTraLop(sb, c);
     const han = fromVNInput(hanVN);
     const { data: cu } = await sb.from("assignment_deadlines").select("han_nop").eq("assignment_id", a).eq("class_id", c).maybeSingle();
     chk(await sb.from("assignment_deadlines").upsert({ assignment_id: a, class_id: c, han_nop: han }));
@@ -87,7 +98,8 @@ export async function datHanNop(assignmentId: string, classId: string, hanVN: st
 
 export async function xoaBaiTap(id: string): Promise<KQ> {
   return chay(async (sb) => {
-    chk(await sb.from("assignments").update({ deleted_at: new Date().toISOString() }).eq("id", uuid(id)));
+    const { data } = chk(await sb.from("assignments").update({ deleted_at: new Date().toISOString() }).eq("id", uuid(id)).select("id"));
+    if (!data?.length) return loi(KHONG_QUYEN);
     await ghiNhatKy("xoa", "assignments", id);
     revalidatePath("/gv", "layout");
     return ok("Đã chuyển bài tập vào thùng rác");
@@ -96,7 +108,8 @@ export async function xoaBaiTap(id: string): Promise<KQ> {
 
 export async function anHienBaiTap(id: string, hien: boolean): Promise<KQ> {
   return chay(async (sb) => {
-    chk(await sb.from("assignments").update({ hien_thi: hien }).eq("id", uuid(id)));
+    const { data } = chk(await sb.from("assignments").update({ hien_thi: hien }).eq("id", uuid(id)).select("id"));
+    if (!data?.length) return loi(KHONG_QUYEN);
     await ghiNhatKy(hien ? "hien" : "an", "assignments", id);
     revalidatePath("/gv", "layout");
     return ok(hien ? "Đã hiện bài tập" : "Đã ẩn bài tập");
@@ -105,8 +118,10 @@ export async function anHienBaiTap(id: string, hien: boolean): Promise<KQ> {
 
 /** File đề: xin link tải lên */
 export async function xinLinkFileDe(assignmentId: string, ten: string, size: number): Promise<KQ> {
-  return chay(async () => {
+  return chay(async (sb) => {
     const a = uuid(assignmentId);
+    const { data: duoc } = await sb.rpc("can_edit_assignment", { p_assignment: a });
+    if (!duoc) return loi(KHONG_QUYEN);
     if (!DUOI_CHO_PHEP.de_bai.includes(layDuoi(ten))) return loi("Loại file đề không được hỗ trợ.");
     if (size > GIOI_HAN_MB.de_bai * 1024 * 1024) return loi(`File quá lớn (tối đa ${GIOI_HAN_MB.de_bai} MB).`);
     return ok(undefined, await capLinkTaiLen("assignment-files", tenLuuAnToan(a, ten)));
@@ -126,9 +141,9 @@ export async function xacNhanFileDe(assignmentId: string, path: string, ten: str
 
 export async function xoaFileDe(id: string): Promise<KQ> {
   return chay(async (sb) => {
-    const { data } = await sb.from("assignment_files").select("file_path").eq("id", uuid(id)).single();
-    chk(await sb.from("assignment_files").delete().eq("id", id));
-    await xoaFile("assignment-files", [data?.file_path]);
+    const { data: xoa } = chk(await sb.from("assignment_files").delete().eq("id", uuid(id)).select("file_path"));
+    if (!xoa?.length) return loi(KHONG_QUYEN); // RLS chặn → không xóa file trong kho
+    await xoaFile("assignment-files", [xoa[0].file_path]);
     return ok("Đã xóa file đề");
   });
 }

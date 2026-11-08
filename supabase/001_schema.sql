@@ -24,7 +24,7 @@ create table if not exists public.profiles (
   ma_hs                 text not null unique,           -- mã đăng nhập (HS001 / tên đăng nhập GV)
   ho_ten                text not null,
   vai_tro               text not null default 'hoc_sinh'
-                        check (vai_tro in ('hoc_sinh','giao_vien','tro_giang')),
+                        check (vai_tro in ('hoc_sinh','giao_vien','tro_giang','quan_tri')),
   class_id              uuid references public.classes(id) on delete set null, -- lớp hiện tại
   must_change_password  boolean not null default true,  -- bắt đổi mật khẩu (HS chỉ tự đổi 1 lần)
   dang_hoc              boolean not null default true,  -- false = nghỉ học

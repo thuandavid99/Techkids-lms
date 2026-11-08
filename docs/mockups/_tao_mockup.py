@@ -291,3 +291,90 @@ b.append(t(1000, 735, "Giáo viên: Thầy Thuận", 13, 600, "#374151", "end"))
 b.append(btn(1080, 30, "🖨 In / Lưu PDF", "cam", 180, 44))
 save("gv-phieu-tien-do-in", b, "Phiếu tiến độ – trang in (In → Lưu PDF)")
 print("ok")
+
+# ---------- 9. Đăng nhập giáo viên (/giao-vien) ----------
+b = [f'<rect width="{W}" height="{H}" fill="url(#sb)"/>']
+b.append(f'<circle cx="150" cy="95" r="38" fill="#24367A" stroke="#3B82F6" stroke-dasharray="4 3"/>' + t(150, 100, "logo", 12, 500, "#93C5FD", "middle"))
+b.append(t(205, 92, "Tech", 30, 800, "#fff") + t(278, 92, "Kids", 30, 800, "#FBBF24") + t(205, 120, "Academy", 22, 700, "#fff"))
+b.append(rect(112, 165, 190, 34, 17, CAM, "none") + t(207, 188, "Khu vực giáo viên", 15, 700, "#fff", "middle"))
+b.append(t(112, 262, "Quản lý lớp Python", 52, 800, "#fff"))
+b.append(t(112, 305, "Soạn bài, chấm bài, theo dõi tiến độ lớp mình phụ trách", 20, 500, "#BFDBFE"))
+b.append(rect(112, 340, 520, 330, 24, "#1E3A8A", "#3B82F6", 'stroke-dasharray="6 5" opacity="0.6"') + t(372, 510, "school-illustration.png", 14, 500, "#93C5FD", "middle"))
+b.append(rect(820, 150, 470, 500, 28, "#fff", "none", 'filter="url(#sh)"'))
+b.append(t(1055, 215, "Đăng nhập giáo viên", 28, 800, TIEU, "middle"))
+b.append(t(1055, 245, "Dùng email và mật khẩu quản trị đã cấp", 15, 500, "#64748B", "middle"))
+for i, (ic, ph) in enumerate([("✉", "Email giáo viên"), ("🔒", "Mật khẩu")]):
+    yy = 275 + i * 80
+    b.append(rect(860, yy, 390, 56, 16, "#F8FAFF", "#CBD5E1") + t(885, yy + 35, ic, 17, 500, TIEU) + t(915, yy + 35, ph, 16, 500, "#94A3B8"))
+b.append(btn(860, 445, "Đăng nhập", "cam", 390, 56, 18))
+b.append(t(1055, 545, "Quên mật khẩu? Liên hệ quản trị để được cấp lại.", 14, 500, "#64748B", "middle"))
+b.append(t(1055, 580, "← Trang đăng nhập học sinh", 14, 600, XANH, "middle"))
+save("gv-dang-nhap", b, "Giáo viên – Trang đăng nhập riêng /giao-vien")
+
+# ---------- 10. Quản trị: Giáo viên ----------
+GV_MENU_QT = ["Tổng quan", "Quản lý lớp", "Bài tập", "Học sinh", "Báo cáo", "Chương trình học", "Giáo viên", "Cài đặt"]
+b = chrome("Giáo viên", GV_MENU_QT, lop=None)
+b.append(rect(57, 154, 80, 18, 9, CAM, "none") + t(97, 167, "QUẢN TRỊ", 10, 800, "#fff", "middle"))
+b.append(t(225, 110, "Giáo viên", 32, 800, TIEU)); b.append(t(225, 138, "Quản trị toàn quyền · Giáo viên chỉ thấy lớp được gán · Đăng nhập ở trang /giao-vien", 14, 500, "#64748B"))
+b.append(btn(1170, 88, "+ Thêm giáo viên", "cam", 200, 44))
+b.append(card(225, 160, 1150, 400))
+b.extend(tbl_header(245, 178, [(20, "HỌ TÊN"), (230, "EMAIL ĐĂNG NHẬP"), (520, "VAI TRÒ"), (650, "LỚP PHỤ TRÁCH"), (880, "TRẠNG THÁI"), (1010, "")], 1110))
+rows = [("Trương Công Thuận (bạn)", "truongdavid19999@gmail.com", ("Quản trị", "cam"), ["Tất cả lớp"], ("Đang dạy", "xanh")),
+        ("Nguyễn Thị Lan", "co.lan@gmail.com", ("Giáo viên", "xd"), ["6A1", "6A2"], ("Đang dạy", "xanh")),
+        ("Lê Minh Quân", "thay.quan@gmail.com", ("Giáo viên", "xd"), ["7A1"], ("Chờ đổi mật khẩu", "cam")),
+        ("Phạm Hồng Nhung", "nhung.ph@gmail.com", ("Giáo viên", "xd"), [], ("Đã khóa", "do"))]
+y = 235
+for n, em, vt, lops_, st in rows:
+    b.append(t(265, y + 24, n, 15, 700, "#1E293B")); b.append(t(475, y + 24, em, 13, 500, "#475569", extra='font-family="Consolas, monospace"'))
+    p, _ = pill(765, y + 23, vt[0], vt[1]); b.append(p)
+    xx = 895
+    if not lops_: b.append(t(xx, y + 24, "Chưa gán lớp", 13, 600, "#B91C1C"))
+    for l in lops_:
+        p, w = pill(xx, y + 23, l, "xam"); b.append(p); xx += w + 6
+    p, _ = pill(1125, y + 23, st[0], st[1]); b.append(p)
+    b.append(t(1335, y + 24, "✎  🏫  🔑  🔒", 15, 500, "#64748B", "end"))
+    y += 74
+b.append(rect(560, 400, 540, 340, 24, "#fff", "#CBD5E1", 'filter="url(#sh)"'))
+b.append(t(590, 440, "Thêm giáo viên", 22, 800, TIEU))
+for i, (lb, ph) in enumerate([("Email", "co.lan@gmail.com"), ("Họ tên", "Nguyễn Thị Lan")]):
+    xx = 590 + i * 250
+    b.append(t(xx, 475, lb, 13, 600, "#334155") + rect(xx, 485, 230, 40, 12, "#F8FAFF", "#CBD5E1") + t(xx + 12, 511, ph, 14, 500, "#94A3B8"))
+b.append(t(590, 555, "Vai trò", 13, 600, "#334155") + rect(590, 565, 480, 40, 12, "#F8FAFF", "#CBD5E1") + t(602, 591, "Giáo viên — chỉ lớp được gán  ▾", 14, 500, "#1E293B"))
+b.append(t(590, 630, "Lớp phụ trách", 13, 600, "#334155"))
+xx = 590
+for l, on in [("6A1", True), ("6A2", True), ("7A1", False), ("8A1", False)]:
+    b.append(rect(xx, 640, 70, 32, 16, "#EEF4FF" if on else "#fff", XANH if on else "#CBD5E1") + t(xx + 35, 661, ("☑ " if on else "☐ ") + l, 13, 600, XANH if on else "#64748B", "middle")); xx += 80
+b.append(btn(900, 690, "Tạo tài khoản", "cam", 170, 40))
+save("qt-giao-vien", b, "Quản trị – Quản lý giáo viên")
+
+# ---------- 11. HS Làm bài: code trái, kết quả phải (kiểu W3Schools) ----------
+b = chrome("Bài tập", HS_MENU, user="Minh An", lop="Lớp 6A1")
+b.append(t(225, 105, "Bài tập 7.1: Tính tổng các số từ 1 đến n", 26, 800, TIEU))
+b.append(card(225, 125, 1150, 620))
+b.append(t(250, 165, "Soạn thảo code", 15, 700, XANH) + f'<line x1="245" y1="175" x2="375" y2="175" stroke="{XANH}" stroke-width="3"/>' + t(400, 165, "Upload file", 15, 500, "#64748B"))
+b.append(rect(245, 190, 545, 500, 16, "#111827", "none"))
+code_ = ['n = int(input("Nhập n: "))', "tong = 0", "for i in range(1, n + 1):", "    tong = tong + i", 'print("Tổng là:", tong)']
+for i, l in enumerate(code_):
+    b.append(t(262, 225 + i * 26, str(i + 1), 14, 500, "#64748B", extra='font-family="Consolas, monospace"'))
+    b.append(t(295, 225 + i * 26, l, 15, 500, "#E5E7EB", extra='font-family="Consolas, monospace" xml:space="preserve"'))
+b.append(rect(810, 190, 545, 500, 16, "#0B1220", "none"))
+b.append(rect(810, 190, 545, 44, 16, "#0F172A", "none"))
+b.append(rect(822, 198, 90, 28, 14, "#16A34A", "none") + t(867, 217, "▶ Chạy", 14, 700, "#fff", "middle"))
+b.append(rect(922, 198, 130, 28, 14, "#334155", "none") + t(987, 217, "⌨ Dữ liệu vào", 13, 600, "#fff", "middle"))
+b.append(t(1340, 217, "Chạy xong trong 0.03 giây", 12, 500, "#94A3B8", "end"))
+b.append(rect(822, 244, 521, 64, 10, "#111827", "#334155") + t(834, 266, "5", 14, 500, "#E5E7EB", extra='font-family="Consolas, monospace"'))
+b.append(t(834, 298, "Mỗi dòng là một lần input()", 11, 500, "#64748B"))
+for i, (l, c) in enumerate([("Nhập n: ", "#E5E7EB"), ("5", "#FCD34D"), ("Tổng là: 15", "#E5E7EB")]):
+    pass
+b.append(t(830, 345, "Nhập n: ", 15, 500, "#E5E7EB", extra='font-family="Consolas, monospace" xml:space="preserve"') + t(900, 345, "5", 15, 600, "#FCD34D", extra='font-family="Consolas, monospace"'))
+b.append(t(830, 371, "Tổng là: 15", 15, 500, "#E5E7EB", extra='font-family="Consolas, monospace"'))
+b.append(rect(822, 520, 521, 150, 10, "#2A0F14", "#7F1D1D"))
+b.append(t(836, 548, "Ví dụ khi có lỗi:", 12, 600, "#FCA5A5"))
+b.append(t(836, 574, 'Bài làm, line 4', 13, 500, "#FCA5A5", extra='font-family="Consolas, monospace"'))
+b.append(t(836, 598, "IndentationError: expected an indented block", 13, 500, "#FCA5A5", extra='font-family="Consolas, monospace"'))
+b.append(t(836, 630, "💡 Xem dòng 4. Lỗi thụt lề: các dòng trong cùng một khối", 13, 500, "#FDE68A"))
+b.append(t(836, 650, "phải thụt vào bằng nhau, thường là 4 dấu cách.", 13, 500, "#FDE68A"))
+b.append(t(245, 715, "Đã lưu nháp lúc 20:15 · Chạy thử chỉ để em kiểm tra, không phải nộp bài.", 13, 500, "#64748B"))
+b.append(btn(1175, 700, "Nộp bài", "cam", 180, 40))
+save("hs-lam-bai-chay-thu", b, "Học sinh – Làm bài: code bên trái, kết quả bên phải")
+print("ok2")

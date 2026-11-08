@@ -3,7 +3,8 @@ import { revalidatePath } from "next/cache";
 import { DUOI_CHO_PHEP, GIOI_HAN_MB, layDuoi } from "@/lib/domain/files";
 import { capLinkTaiLen, tenLuuAnToan, xacMinhFile, xoaFile } from "@/lib/server/storage";
 import { ghiNhatKy } from "@/lib/server/audit";
-import { chay, chk, loi, ok, str, uuid } from "./_util";
+// Kho học liệu (tài liệu chung) do QUẢN TRỊ quản lý; giáo viên thường chỉ xem.
+import { chayQt, chk, loi, ok, str, uuid } from "./_util";
 import type { KQ } from "@/lib/types";
 import type { createClient } from "@/lib/supabase/server";
 
@@ -19,7 +20,7 @@ async function xoaFileNeuKhongDung(sb: SB, path: string | null) {
 }
 
 export async function xinLinkTaiLieu(ten: string, size: number): Promise<KQ> {
-  return chay(async () => {
+  return chayQt(async () => {
     if (!DUOI_CHO_PHEP.tai_lieu.includes(layDuoi(ten))) return loi(`Loại file không hỗ trợ. Nhận: ${DUOI_CHO_PHEP.tai_lieu.join(", ")}`);
     if (size > GIOI_HAN_MB.tai_lieu * 1024 * 1024) return loi(`File quá lớn (tối đa ${GIOI_HAN_MB.tai_lieu} MB). File lớn/video nên dùng link.`);
     return ok(undefined, await capLinkTaiLen("materials", tenLuuAnToan(new Date().toISOString().slice(0, 7), ten)));
@@ -28,7 +29,7 @@ export async function xinLinkTaiLieu(ten: string, size: number): Promise<KQ> {
 
 /** Sau khi tải lên: kiểm tra nội dung thật rồi tạo tài liệu (lessonId null = kho chung) */
 export async function xacNhanTaiLieu(lessonId: string | null, path: string, ten: string): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     if (path.includes("..")) return loi("Đường dẫn không hợp lệ.");
     const kt = await xacMinhFile("materials", path, ten, "tai_lieu");
     if (!kt.ok) return loi(kt.loi);
@@ -42,7 +43,7 @@ export async function xacNhanTaiLieu(lessonId: string | null, path: string, ten:
 }
 
 export async function themLink(_: KQ, fd: FormData): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     const url = str(fd, "url", 2000);
     const tieuDe = str(fd, "tieu_de", 200);
     const lesson = str(fd, "lesson_id");
@@ -56,7 +57,7 @@ export async function themLink(_: KQ, fd: FormData): Promise<KQ> {
 }
 
 export async function suaTaiLieu(id: string, patch: { tieu_de?: string; loai?: string | null; cho_phep_tai?: boolean; hien_thi?: boolean; lesson_id?: string | null; url?: string }): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     const p: Record<string, unknown> = {};
     if (patch.tieu_de !== undefined) { if (!patch.tieu_de.trim()) return loi("Tên không được trống."); p.tieu_de = patch.tieu_de.slice(0, 200); }
     if (patch.loai !== undefined) p.loai = patch.loai ? uuid(patch.loai) : null;
@@ -73,7 +74,7 @@ export async function suaTaiLieu(id: string, patch: { tieu_de?: string; loai?: s
 
 /** Chọn lớp được xem tài liệu (không chọn lớp nào = mọi lớp) */
 export async function datLopXem(id: string, classIds: string[]): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     chk(await sb.from("material_classes").delete().eq("material_id", uuid(id)));
     if (classIds.length) chk(await sb.from("material_classes").insert(classIds.map((c) => ({ material_id: id, class_id: uuid(c) }))));
     xong();
@@ -83,7 +84,7 @@ export async function datLopXem(id: string, classIds: string[]): Promise<KQ> {
 
 /** Thay file mới (giữ nguyên chỗ gắn, tên hiển thị) */
 export async function thayFile(id: string, path: string, ten: string): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     const kt = await xacMinhFile("materials", path, ten, "tai_lieu");
     if (!kt.ok) return loi(kt.loi);
     const { data: cu } = await sb.from("materials").select("file_path").eq("id", uuid(id)).single();
@@ -95,7 +96,7 @@ export async function thayFile(id: string, path: string, ten: string): Promise<K
 }
 
 export async function xoaTaiLieu(id: string): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     chk(await sb.from("materials").update({ deleted_at: new Date().toISOString() }).eq("id", uuid(id)));
     await ghiNhatKy("xoa", "materials", id);
     xong();
@@ -105,7 +106,7 @@ export async function xoaTaiLieu(id: string): Promise<KQ> {
 
 /** Thao tác hàng loạt ở Kho học liệu */
 export async function hangLoatTaiLieu(ids: string[], viec: "an" | "hien" | "chuyen_buoi" | "lop_xem" | "xoa", giaTri?: string | string[]): Promise<KQ> {
-  return chay(async (sb) => {
+  return chayQt(async (sb) => {
     const ds = ids.slice(0, 500).map(uuid);
     if (!ds.length) return loi("Chưa chọn tài liệu nào.");
     if (viec === "an" || viec === "hien") chk(await sb.from("materials").update({ hien_thi: viec === "hien" }).in("id", ds));

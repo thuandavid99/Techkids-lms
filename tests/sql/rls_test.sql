@@ -1,7 +1,7 @@
 -- =====================================================================
 -- tests/sql/rls_test.sql — KIỂM THỬ PHÂN QUYỀN + NỘP/CHẤM BÀI (dành cho lập trình viên)
 -- KHÔNG chạy trên Supabase thật (file tạo người dùng giả trong auth.users).
--- Chạy trên Postgres thử nghiệm sau 00_supabase_stub + 001..004 + seed.
+-- Chạy trên Postgres thử nghiệm sau 00_supabase_stub + 001..005 + seed.
 -- Mỗi kiểm tra in "OK ..." hoặc dừng với lỗi "FAIL ...".
 -- =====================================================================
 \set ON_ERROR_STOP 1
@@ -10,10 +10,15 @@ begin;
 -- Người dùng giả
 insert into auth.users(id, email) values
  ('00000000-0000-0000-0000-0000000000a1','thay@x.vn'),
+ ('00000000-0000-0000-0000-0000000000a2','cob@x.vn'),
  ('00000000-0000-0000-0000-0000000000b1','hs001@x.vn'),
  ('00000000-0000-0000-0000-0000000000b2','hs002@x.vn');
 insert into profiles(id, ma_hs, ho_ten, vai_tro, must_change_password) values
- ('00000000-0000-0000-0000-0000000000a1','thaythuan','Thầy Thuận','giao_vien', false);
+ ('00000000-0000-0000-0000-0000000000a1','thaythuan','Thầy Thuận','quan_tri', false);
+-- Cô B: giáo viên thường, chỉ phụ trách lớp 6A2
+insert into profiles(id, ma_hs, ho_ten, vai_tro, must_change_password) values
+ ('00000000-0000-0000-0000-0000000000a2','cob','Cô B','giao_vien', false);
+insert into class_teachers(class_id, teacher_id) select id, '00000000-0000-0000-0000-0000000000a2' from classes where ten_lop='6A2';
 insert into profiles(id, ma_hs, ho_ten, vai_tro, class_id) values
  ('00000000-0000-0000-0000-0000000000b1','HS001','Nguyễn An','hoc_sinh',(select id from classes where ten_lop='6A1')),
  ('00000000-0000-0000-0000-0000000000b2','HS002','Trần Bình','hoc_sinh',(select id from classes where ten_lop='6A2'));
@@ -163,6 +168,110 @@ select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000b1'
 do $$ begin
   begin perform gv_lam_sach_thung_rac(); raise exception 'FAIL 13';
   exception when others then if sqlerrm like 'FAIL%' then raise; end if; raise notice 'OK 13: học sinh bị chặn hàm của giáo viên'; end;
+end $$;
+
+-- =====================================================================
+-- 14–21. PHÂN QUYỀN THEO LỚP (005): Cô B chỉ phụ trách 6A2
+-- =====================================================================
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000a2', true);
+do $$ begin
+  if exists (select 1 from classes where ten_lop = '6A1') then raise exception 'FAIL 14: GV thấy lớp không phụ trách'; end if;
+  if not exists (select 1 from classes where ten_lop = '6A2') then raise exception 'FAIL 14b: GV không thấy lớp mình'; end if;
+  raise notice 'OK 14: GV chỉ thấy lớp mình phụ trách';
+end $$;
+
+do $$ begin
+  if exists (select 1 from profiles where ma_hs = 'HS001') then raise exception 'FAIL 15: GV thấy HS lớp khác'; end if;
+  if not exists (select 1 from profiles where ma_hs = 'HS002') then raise exception 'FAIL 15b: GV không thấy HS lớp mình'; end if;
+  if exists (select 1 from submissions s join profiles p on p.id = s.student_id where p.ma_hs = 'HS001') then raise exception 'FAIL 15c'; end if;
+  if (select count(*) from submissions) <> 0 then raise exception 'FAIL 15d: GV thấy bài nộp lớp khác'; end if;
+  if exists (select 1 from v_bai_hoc_sinh where ma_hs = 'HS001') then raise exception 'FAIL 15e: view lộ HS lớp khác'; end if;
+  raise notice 'OK 15: GV không thấy học sinh / bài nộp / view của lớp khác';
+end $$;
+
+-- 16. GV không chấm được bài lớp khác (kể cả gọi thẳng hàm)
+do $$ declare r jsonb; v_sub uuid; begin
+  reset role; select id into v_sub from submissions limit 1; set local role authenticated;
+  perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000a2', true);
+  r := gv_luu_diem(v_sub, 1, 'x', 'cham', null, true, null);
+  if (r->>'ok')::boolean then raise exception 'FAIL 16: GV chấm được bài lớp khác'; end if;
+  raise notice 'OK 16: GV không chấm được bài lớp khác (%)', r->>'loi';
+end $$;
+
+-- 17. GV không sửa được chương trình CHUNG, không sửa cài đặt
+do $$ declare n int; begin
+  update lessons set tieu_de = 'hack' where class_id is null; get diagnostics n = row_count;
+  if n > 0 then raise exception 'FAIL 17: GV sửa được buổi chung'; end if;
+  begin
+    insert into lessons(curriculum_id, thu_tu, tieu_de) select curriculum_id, 'zz', 'x' from lessons limit 1;
+    raise exception 'FAIL 17b: GV thêm được buổi chung';
+  exception when insufficient_privilege then null; end;
+  update app_settings set value = '9'::jsonb; get diagnostics n = row_count;
+  if n > 0 then raise exception 'FAIL 17c: GV sửa được cài đặt'; end if;
+  begin
+    insert into class_teachers(class_id, teacher_id) select id, auth.uid() from classes limit 1;
+    raise exception 'FAIL 17d: GV tự gán lớp';
+  exception when insufficient_privilege then null; end;
+  raise notice 'OK 17: GV chỉ xem chương trình chung, không sửa cài đặt, không tự gán lớp';
+end $$;
+
+-- 18. GV tạo được BẢN RIÊNG cho lớp mình, không tạo được cho lớp khác
+do $$ declare v_l uuid; v_c2 uuid; v_c1 uuid; begin
+  reset role;
+  select id into v_c1 from classes where ten_lop='6A1'; select id into v_c2 from classes where ten_lop='6A2';
+  select id into v_l from lessons where class_id is null and ghi_de_cua is null limit 1;
+  set local role authenticated; perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000a2', true);
+  insert into lessons(curriculum_id, thu_tu, tieu_de, class_id, ghi_de_cua)
+    select curriculum_id, thu_tu, 'Bản riêng 6A2', v_c2, id from lessons where id = v_l;
+  begin
+    insert into lessons(curriculum_id, thu_tu, tieu_de, class_id, ghi_de_cua)
+      select curriculum_id, thu_tu, 'Bản riêng 6A1', v_c1, id from lessons where id = v_l;
+    raise exception 'FAIL 18: GV tạo bản riêng cho lớp khác';
+  exception when insufficient_privilege then null; end;
+  raise notice 'OK 18: GV tạo bản riêng cho lớp mình, bị chặn với lớp khác';
+end $$;
+
+-- 19. GV đăng thông báo lớp mình được, lớp khác bị chặn
+do $$ begin
+  insert into announcements(class_id, noi_dung) select id, 'Lớp 6A2 nghỉ' from classes where ten_lop = '6A2';
+  begin
+    insert into announcements(class_id, noi_dung) select id, 'x' from classes where ten_lop = '6A1';
+    -- không thấy lớp 6A1 nên select trả 0 dòng: thử bằng id thật
+    reset role; set local role authenticated;
+    perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000a2', true);
+    insert into announcements(class_id, noi_dung) values ((select c1 from t_ctx), 'x');
+    raise exception 'FAIL 19: GV đăng thông báo lớp khác';
+  exception when insufficient_privilege then null; end;
+  raise notice 'OK 19: thông báo lớp chỉ cho lớp mình';
+end $$;
+
+-- 20. Thông báo "Em chưa làm được" chỉ gửi GV lớp đó (+ quản trị)
+do $$ declare v_b uuid := '00000000-0000-0000-0000-0000000000a2'; begin
+  reset role;
+  delete from notifications where loai = 'chua_lam_duoc';
+  insert into student_flags(assignment_id, student_id, chua_lam_duoc)
+    select (select a71 from t_ctx), '00000000-0000-0000-0000-0000000000b1', true
+    on conflict (assignment_id, student_id) do update set chua_lam_duoc = true, da_ho_tro = false;
+  update student_flags set chua_lam_duoc = false where student_id = '00000000-0000-0000-0000-0000000000b1';
+  update student_flags set chua_lam_duoc = true where student_id = '00000000-0000-0000-0000-0000000000b1';
+  if exists (select 1 from notifications where user_id = v_b and loai = 'chua_lam_duoc') then raise exception 'FAIL 20: GV lớp khác nhận thông báo'; end if;
+  if not exists (select 1 from notifications where user_id = '00000000-0000-0000-0000-0000000000a1' and loai = 'chua_lam_duoc') then raise exception 'FAIL 20b: quản trị không nhận thông báo'; end if;
+  raise notice 'OK 20: thông báo chỉ tới GV phụ trách + quản trị';
+end $$;
+
+-- 21. GV bị khóa (deleted_at) không đọc được gì; GV thường không làm sạch thùng rác
+do $$ begin
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000a2', true);
+  begin perform gv_lam_sach_thung_rac(); raise exception 'FAIL 21a';
+  exception when others then if sqlerrm like 'FAIL%' then raise; end if; end;
+  reset role; update profiles set deleted_at = now() where id = '00000000-0000-0000-0000-0000000000a2';
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000a2', true);
+  if exists (select 1 from classes) or exists (select 1 from profiles where vai_tro = 'hoc_sinh') then raise exception 'FAIL 21: GV bị khóa vẫn đọc được'; end if;
+  raise notice 'OK 21: GV bị khóa không đọc được dữ liệu; GV thường không làm sạch thùng rác';
 end $$;
 
 rollback;
