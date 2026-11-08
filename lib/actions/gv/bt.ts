@@ -60,9 +60,9 @@ export async function luuBaiTap(_: KQ, fd: FormData): Promise<KQ> {
     if (![1, 2].includes(v.hoc_ky)) return loi("Học kỳ là 1 hoặc 2.");
 
     if (phamVi === "tat_ca") {
-      const { data: cu } = await sb.from("assignments").select(COT.join(",")).eq("id", id).single();
+      const { data: cu } = await sb.from("assignments").select("ma, tieu_de, de_bai, diem_toi_da, loai_nop, cho_nop_tre, khoa_nop, tinh_diem, bat_buoc, he_so, hoc_ky, hien_thi").eq("id", id).single();
       chk(await sb.from("assignments").update(v).eq("id", id));
-      if (cu && (cu as Record<string, unknown>).hien_thi !== v.hien_thi && !v.hien_thi) await ghiNhatKy("an", "assignments", id);
+      if (cu && (cu as unknown as Record<string, unknown>).hien_thi !== v.hien_thi && !v.hien_thi) await ghiNhatKy("an", "assignments", id);
       await ghiNhatKy("sua", "assignments", id, cu, v);
     } else {
       const c = uuid(phamVi);
