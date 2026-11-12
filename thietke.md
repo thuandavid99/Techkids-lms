@@ -227,3 +227,4 @@ docs/              so-do-du-lieu, kiem-thu-thu-cong, doi-chieu-spec, mockups/
 - 12/11 chat 4: gắn tên miền `techkids.asia` (Hostinger → Vercel, A record 216.198.79.1). Cần đặt Supabase Site URL + biến GitHub `SITE_URL` = https://techkids.asia.
 - 12/11 chat 4: bảo mật — SQL `008_khoa_ham.sql` (khóa hàm với anon), header HSTS, danh sách việc bảo mật cho thầy.
 - 12/11 chat 4: tiến độ lớp theo nút "Xong buổi này" (bỏ tính theo ngày, bỏ chế độ tự mở theo lịch), "Đã học x/y" thống nhất; avatar nữ.
+- 12/11 chat 5: nộp bài nhanh hơn — bỏ `revalidatePath("/", "layout")` ở `nopBaiCode`/`xacNhanNopFile` (trước đây server dựng lại cả trang Làm bài trong lúc nộp), hủy tự lưu nháp đang chờ khi bấm Nộp, tải trước trang "Đã nộp", báo "Nộp bài thành công" ngay; `package.json` đồng bộ phiên bản với `package-lock.json` (Next 16.4.5, React 19.3.1).

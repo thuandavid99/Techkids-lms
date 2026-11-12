@@ -97,6 +97,8 @@ export function LamBai(props: LamBaiProps & { children?: React.ReactNode }) {
   async function nop() {
     if (dangNop) return;
     setDangNop(true);
+    // Hủy lần tự lưu nháp đang chờ — tránh để nó chen trước lượt nộp (server xử lý lần lượt từng thao tác)
+    if (timer.current) { clearTimeout(timer.current); timer.current = null; }
     try {
       let kq;
       if (cheDo === "file" && file) {
@@ -114,6 +116,7 @@ export function LamBai(props: LamBaiProps & { children?: React.ReactNode }) {
         kq = await nopBaiCode(assignmentId, soBai > 1 || l ? { tabs, link: l || null } : tabs[0]);
       }
       if (!kq.ok) throw new Error(kq.loi);
+      toast("Nộp bài thành công! 🎉");   // báo ngay, trong lúc chuyển sang trang "Đã nộp"
       router.push(`/bai-tap/${assignmentId}/da-nop?vua=1`);
     } catch (e) {
       toast((e as Error).message || "Mất kết nối. Bài của em vẫn còn trên màn hình, thử nộp lại nhé.", "loi");
@@ -205,7 +208,7 @@ export function LamBai(props: LamBaiProps & { children?: React.ReactNode }) {
           {khoa ? (
             <p className="mt-4 flex items-start gap-2 rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-700"><Lock className="mt-0.5 h-4 w-4 shrink-0" /> {khoa}</p>
           ) : (
-            <Button size="lg" className="mt-4 w-full text-lg" disabled={!coTheNop || dangNop} onClick={() => setXacNhan(true)}>
+            <Button size="lg" className="mt-4 w-full text-lg" disabled={!coTheNop || dangNop} onClick={() => { setXacNhan(true); router.prefetch(`/bai-tap/${assignmentId}/da-nop?vua=1`); }}>
               {dangNop ? "Đang nộp…" : props.daNop ? "Nộp lại" : "Nộp bài"}
             </Button>
           )}

@@ -56,7 +56,8 @@ export async function nopBaiCode(assignmentId: string, noiDung: string | NoiDung
     const kq = data as { ok: boolean; loi?: string; nop_luc?: string; file_cu?: string };
     if (!kq.ok) return loi(kq.loi ?? "Chưa nộp được.");
     if (kq.file_cu) await xoaFile("submissions", [kq.file_cu]);
-    revalidatePath("/", "layout");
+    // Không gọi revalidatePath: nó bắt server dựng lại cả trang Làm bài trong lúc nộp (vô ích vì
+    // trình duyệt chuyển ngay sang trang "Đã nộp"). Các trang HS đều động nên tự lấy số liệu mới khi mở.
     return { ok: true, tb: "Nộp bài thành công!", data: kq.nop_luc, ts: Date.now() };
   } catch (e) { return loi((e as Error).message); }
 }
@@ -94,7 +95,8 @@ export async function xacNhanNopFile(assignmentId: string, path: string, tenGoc:
       return loi(kq?.loi ?? "Chưa nộp được. Thử lại nhé.");
     }
     if (kq.file_cu) await xoaFile("submissions", [kq.file_cu]);
-    revalidatePath("/", "layout");
+    // Không gọi revalidatePath: nó bắt server dựng lại cả trang Làm bài trong lúc nộp (vô ích vì
+    // trình duyệt chuyển ngay sang trang "Đã nộp"). Các trang HS đều động nên tự lấy số liệu mới khi mở.
     return { ok: true, tb: "Nộp bài thành công!", data: kq.nop_luc, ts: Date.now() };
   } catch (e) { return loi((e as Error).message); }
 }
