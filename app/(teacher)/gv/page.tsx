@@ -3,7 +3,7 @@ import { Users, ArrowRight, Trophy, CalendarDays, Hourglass, UserX, PhoneCall, H
 import { createClient } from "@/lib/supabase/server";
 import { cacLop, buoiLop } from "@/lib/server/data";
 import { tongQuan, dangOBuoi } from "@/lib/server/gv";
-import { Card, PageGrid, BrandCard, CardTitle } from "@/components/ui/Card";
+import { Card, PageGrid, CardTitle } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/States";
@@ -121,7 +121,6 @@ export default async function Page() {
             </ul>
           )}
         </Card>
-        <BrandCard />
       </>}
     />
   );

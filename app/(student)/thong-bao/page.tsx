@@ -1,6 +1,6 @@
 import { requireStudent } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { Card, PageGrid, BrandCard } from "@/components/ui/Card";
+import { Card, PageGrid } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/States";
 import { NotificationList } from "@/components/shared/NotificationList";
 import { fmtDateTime } from "@/lib/domain/time";
@@ -31,7 +31,6 @@ export default async function Page() {
             </ul>
           )}
         </Card>
-        <BrandCard />
       </>}
     />
   );

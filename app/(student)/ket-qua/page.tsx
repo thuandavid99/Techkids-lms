@@ -1,4 +1,4 @@
-import { Star, CircleCheckBig, Trophy, Award, Printer } from "lucide-react";
+import { Star, CircleCheckBig, BookOpenText, Trophy, Award, Printer } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
 import { duLieuHs } from "@/lib/server/hs";
 import { IMG } from "@/lib/brand";
@@ -6,7 +6,7 @@ import { Card, PageGrid, RobotCard } from "@/components/ui/Card";
 import { Stat, PillTabs } from "@/components/ui/Misc";
 import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/States";
-import { diemTrungBinh, phanTramHoanThanh, tinhHuyHieu } from "@/lib/domain/stats";
+import { diemTrungBinh, soLieuHs, tinhHuyHieu } from "@/lib/domain/stats";
 import { tenBaiTap } from "@/lib/domain/naming";
 
 export const metadata = { title: "Kết quả học tập" };
@@ -14,11 +14,11 @@ export const metadata = { title: "Kết quả học tập" };
 export default async function Page({ searchParams }: { searchParams: Promise<{ module?: string }> }) {
   const { module: locModule = "" } = await searchParams;
   const p = await requireStudent();
-  const { dong, modules, cd } = await duLieuHs(p);
+  const { dong, buoi, modules, cd } = await duLieuHs(p);
   const now = new Date();
   const soLe = Number(cd.lam_tron_diem ?? 1);
   const tb = diemTrungBinh(dong, { soChuSo: soLe });
-  const pt = phanTramHoanThanh(dong, now);
+  const so = soLieuHs(buoi, dong, now);
   const hh = tinhHuyHieu(dong, now);
 
   // Biểu đồ: điểm TB theo module
@@ -30,9 +30,10 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ m
       main={
         <Card>
           <h1 className="h-page mb-4">Kết quả học tập</h1>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-4">
             <Stat icon={<Star className="h-6 w-6 fill-navy-800" />} label="Điểm trung bình" value={tb === null ? "—" : tb.toFixed(soLe)} />
-            <Stat icon={<CircleCheckBig className="h-6 w-6" />} label="Hoàn thành" value={`${pt.phanTram}%`} />
+            <Stat icon={<BookOpenText className="h-6 w-6" />} label="Buổi học" value={`${so.buoi.xong}/${so.buoi.tong}`} />
+            <Stat icon={<CircleCheckBig className="h-6 w-6" />} label="Bài tập đã nộp" value={`${so.bai.xong}/${so.bai.tong}`} />
             <Stat icon={<Trophy className="h-6 w-6" />} label="Huy hiệu" value={hh.length} />
           </div>
 

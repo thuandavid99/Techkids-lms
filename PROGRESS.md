@@ -162,8 +162,16 @@ Kiểm tra tự động 47 trang × 5 cỡ màn (360, 390, 768, 1024, 1440 px) b
 6. **Tối ưu gói miễn phí:** việc "tạo thông báo tự động" chỉ chạy 15 phút/lần (cookie `lms_tb` do `proxy.ts` đặt); `/api/song` + `.github/workflows/giu-web-thuc.yml` gọi DB mỗi ngày để Supabase không tạm dừng (cần biến `SITE_URL` trong GitHub); Cài đặt (quản trị) → **Tải file sao lưu (.xlsx)** (`/api/gv/xuat?loai=sao-luu`: HS + bài nộp kèm code + điểm + nhận xét).
 **Đã kiểm:** SQL 001→006 (+ chạy lại 005/006) trên PostgreSQL 16: **26/26** kiểm thử RLS (thêm 22–24); **75/75** kiểm thử logic (thêm `mo-buoi`, `bai-nop`, PPCT thật); hiển thị 47 trang × 5 cỡ màn: 0 trang cuộn ngang. **12/11: `npm run build` trên máy thầy THÀNH CÔNG** (Next 16.4.5, 0 lỗi TypeScript, 39 trang). Chưa: chạy với Supabase thật.
 
+## 7d. Chat 4 (vòng 3) — Lịch thông minh, menu gọn, cá nhân hóa, phía học sinh (✅ 12/11) — **cần chạy `supabase/007_ca_nhan_hoa.sql`**
+1. **Lịch học thông minh** (`components/teacher/LichLop.tsx`): buổi có ngày học < hôm nay **tự tính "Đã học"** (không cần tích); 3 nhóm: *Đã học* (gập) / *Hôm nay & sắp tới* (3 buổi) / *Các buổi sau* (gập). Mỗi buổi 1 chip trạng thái: **Mở ngay / Hẹn giờ / Khóa**; ghi chú thành icon; menu ⋯ "Lớp nghỉ buổi này → dời lịch", "Đánh dấu đã dạy". `lib/server/gv.ts dangOBuoi` cũng tính theo ngày.
+2. **Menu giáo viên 6 mục:** Tổng quan · Lớp học · Chấm bài · Chương trình · Hộp thư · Cài đặt. Trong một lớp có thanh tab `SubNavLop` (Ma trận · Lịch & mở buổi · Tình hình nộp · Học sinh · Bài tập · Nhắc phụ huynh · Bảng điểm · Đăng thông báo). **Chỉ còn 1 ô chọn lớp** (trên đầu trang, `Topbar ClassSelect`), đổi lớp là ở nguyên trang con. Cài đặt có tab (`SubNavCaiDat`): Chung · Mẫu nhận xét & tin nhắn · Tài khoản & sao lưu · Giáo viên · Nhật ký · Thùng rác · Hướng dẫn.
+3. **Cá nhân hóa từng HS** (SQL 007, không ảnh hưởng HS khác — lưu dạng ngoại lệ): bảng `student_lesson_access` (mở buổi riêng cho 1 em), `assignment_students` + cột `assignments.chi_rieng` (bài chỉ giao cho vài em); hàm `buoi_mo_cho_hs`, `bai_tap_mo_cho_hs`; view `v_bai_hoc_sinh` lọc theo đó. Giao diện: thẻ **"Cá nhân hóa cho em"** ở trang chi tiết HS (`CaNhanHoa.tsx`: mở buổi riêng / gia hạn – miễn nộp / bài riêng), thẻ **"Giao cho ai"** ở Soạn bài tập (`GiaoChoAi.tsx`). Action: `lib/actions/gv/canhan.ts`.
+4. **Phía học sinh:** một nguồn số liệu `soLieuHs` → mọi nơi hiện **"Buổi học x/y"** và **"Bài tập a/b"** (bỏ các % lệch nhau); trang chủ có khung **"Hôm nay em cần làm"** (`viecCanLam`: học hôm nay → nộp lại → quá hạn → sắp hạn ≤3 ngày; `HomNayCanLam.tsx`) thay 4 ô màu; **Hồ sơ gộp vào "Tài khoản của em"** (`/ho-so` tự chuyển sang `/cai-dat`); Bài tập lọc **một hàng** (Tất cả · Cần làm · Sắp hết hạn · Quá hạn · Đã nộp · Đã chấm; link cũ `?han=` vẫn chạy); Kho học liệu bỏ khung "mới cập nhật" trùng lặp (thay bằng nhãn "N tài liệu mới").
+5. **Dọn hình:** bỏ thẻ "TechKids Academy" lặp ở cuối mọi trang, bỏ robot ở trang GV (Học sinh, Lớp, Báo cáo) và robot laptop ở trang buổi học / xem thử; mỗi trang HS tối đa 1 hình. **Soạn bài tập gọn:** chỉ hiện Mã, Tên, Đề, Loại nộp, Điểm tối đa, Số bài; Hệ số, Học kỳ, 5 ô tích nằm trong **"Tùy chọn nâng cao"** (gập, có dòng tóm tắt).
+**Đã kiểm:** SQL 001→007 trên PostgreSQL 16: **28/28** RLS; **80/80** kiểm thử logic (thêm `viec-can-lam`); 49 trang × 5 cỡ màn: 0 trang cuộn ngang; không lỗi kiểu mới.
+
 ## 8. VIỆC TIẾP THEO CHO CLAUDE (thứ tự ưu tiên)
-0. **8.0** Thầy chạy `006_mo_buoi_nhieu_bai.sql`, chép mã mới, `npm run build`; nhập lại PPCT bằng file thật (bật "Đánh số lại"), đặt biến `SITE_URL` cho GitHub Actions. Nhận lỗi build (nếu có) → sửa.
+0. **8.0** Thầy chạy `007_ca_nhan_hoa.sql` (sau 006), chép mã mới, `npm run build`; nhập lại PPCT bằng file thật (bật "Đánh số lại"), đặt biến `SITE_URL` cho GitHub Actions. Nhận lỗi build (nếu có) → sửa.
 1. **8.1** Nhận kết quả `npm run build` từ thầy → sửa lỗi build/type/lint cho sạch (lần build thật đầu tiên). Kiểm tra `npm test` (vitest thật).
 2. **8.2** Hỗ trợ chạy 005, đẩy GitHub/Vercel (vùng sin1); xử lý lỗi Build Logs.
 3. **8.3** Thử thật: `/giao-vien`, menu Giáo viên, nút ▶ Chạy (nếu Pyodide v0.28.0 lỗi tải → đổi `PYODIDE_URL`). Theo `docs/kiem-thu-thu-cong.md` mục H, I, J.
@@ -185,7 +193,7 @@ vercel.json        vùng chạy Singapore (sin1)
 lib/supabase/      server, browser, admin (server-only), env
 lib/actions/       server actions HS + gv/*
 lib/server/        đọc dữ liệu ở server
-supabase/          001_schema, 002_rls, 003_storage, 004_views_functions, 005_giao_vien_rieng, seed
+supabase/          001_schema, 002_rls, 003_storage, 004_views_functions, 005_giao_vien_rieng, 006_mo_buoi_nhieu_bai, 007_ca_nhan_hoa, seed
 tests/             *.test.ts + sql/rls_test.sql
 docs/              so-do-du-lieu, kiem-thu-thu-cong, doi-chieu-spec, mockups/
 ```
@@ -199,3 +207,4 @@ docs/              so-do-du-lieu, kiem-thu-thu-cong, doi-chieu-spec, mockups/
 - 12/11 chat 4 (tiếp): mở buổi bằng nút gạt + chế độ tự mở theo lịch; bài tập nhiều tab + chấm ✓/✗; nhập PPCT thật (đoán cột theo dữ liệu, đánh số lại, nút Làm Quiz, tự tạo bài tập); tách nền + WebP toàn bộ hình; nút Đăng nhập GV/HS; nộp bài bỏ ảnh, thêm dán link; giảm truy vấn, giữ web thức, sao lưu Excel. SQL mới: `006_mo_buoi_nhieu_bai.sql`.
 - 12/11 chat 4: thầy chạy 006 + `npm run build` thành công lần đầu.
 - 12/11 chat 4: Tổng quan GV gọn lại theo cách A (công tắc mở buổi nằm trong thẻ lớp, nút ⚙). PPCT thật CHƯA nhập vào web (lớp TK1/TK2 đang dùng chương trình mẫu).
+- 12/11 chat 4 (vòng 3): lịch học thông minh; menu GV 6 mục + 1 ô chọn lớp + tab trong lớp; Cài đặt có tab; cá nhân hóa từng HS (SQL `007_ca_nhan_hoa.sql`); phía HS: số liệu thống nhất x/y, "Hôm nay em cần làm", gộp Hồ sơ vào Tài khoản, lọc 1 hàng; dọn hình, rút gọn Soạn bài tập.

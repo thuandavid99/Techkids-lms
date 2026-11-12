@@ -10,7 +10,7 @@ const MENU: NavItem[] = [
   { href: "/kho-hoc-lieu", label: "Kho học liệu", icon: "kho" },
   { href: "/bai-tap", label: "Bài tập", icon: "bai" },
   { href: "/ket-qua", label: "Kết quả", icon: "kq" },
-  { href: "/cai-dat", label: "Cài đặt", icon: "caidat" },
+  { href: "/cai-dat", label: "Tài khoản", icon: "caidat" },
 ];
 const DUOI: NavItem[] = [MENU[0], MENU[1], MENU[3], MENU[4], MENU[2]];
 

@@ -1,9 +1,9 @@
 import { BarChart3, MessageCircle, FileSpreadsheet, Printer } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { lopDangChon } from "@/lib/server/lop";
+import { SubNavLop } from "@/components/teacher/SubNavLop";
 import { duLieuLop } from "@/lib/server/gv";
-import { IMG } from "@/lib/brand";
-import { Card, PageGrid, RobotCard, CardTitle } from "@/components/ui/Card";
+import { Card, PageGrid, CardTitle } from "@/components/ui/Card";
 import { ButtonLink, btnClass } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/States";
 import { BaoCaoList, type DongBC } from "@/components/teacher/BaoCaoList";
@@ -21,7 +21,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ l
   const tt = TT.some((x) => x.v === sp.trang_thai) ? sp.trang_thai! : "can_nhac";
   const tu = /^\d{4}-\d{2}-\d{2}$/.test(sp.tu ?? "") ? sp.tu! : "";
   const sb = await createClient();
-  const { lops, lop } = await lopDangChon(sb, sp.lop);
+  const { lop } = await lopDangChon(sb, sp.lop);
   if (!lop) return <Card><EmptyState title="Chưa có lớp nào" /></Card>;
   const [{ rows, hs }, { data: mau }, { data: nhac }] = await Promise.all([
     duLieuLop(sb, lop.id),
@@ -60,12 +60,14 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ l
   const q = new URLSearchParams({ lop: lop.id, trang_thai: tt, ...(tu && { tu }) }).toString();
 
   return (
+    <>
+    <SubNavLop id={lop.id} />
     <PageGrid
       main={<>
         <h1 className="h-page">Báo cáo &amp; Nhắc phụ huynh</h1>
         <Card className="!py-3">
           <form action="/gv/bao-cao" className="flex flex-wrap items-center gap-2">
-            <select name="lop" defaultValue={lop.id} className="input !w-auto !rounded-2xl" aria-label="Lớp">{lops.map((l) => <option key={l.id} value={l.id}>Lớp: Lớp {l.ten_lop}</option>)}</select>
+            <input type="hidden" name="lop" value={lop.id} />
             <select name="trang_thai" defaultValue={tt} className="input !w-auto !rounded-2xl" aria-label="Trạng thái">{TT.map((x) => <option key={x.v} value={x.v}>Trạng thái: {x.t}</option>)}</select>
             <label className="inline-flex items-center gap-1 text-sm">Từ ngày <input type="date" name="tu" defaultValue={tu} className="input !w-auto !rounded-2xl" /></label>
             <button className={btnClass("outline", "md")}>Lọc</button>
@@ -99,8 +101,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ l
             </form>
           </div>
         </Card>
-        <RobotCard img={IMG.cheer} title="Học hôm nay - Tỏa sáng ngày mai!" />
       </>}
     />
+    </>
   );
 }

@@ -2,32 +2,44 @@ import Link from "next/link";
 import Image from "next/image";
 import { Trophy, Star, Megaphone, Users, ClipboardList } from "lucide-react";
 import { Card, CardTitle, XemTatCa } from "@/components/ui/Card";
-import { ProgressRing } from "@/components/ui/Misc";
 import { ButtonLink } from "@/components/ui/Button";
 import { IMG } from "@/lib/brand";
 import { fmtAgo, fmtDate } from "@/lib/domain/time";
 import { tenBaiTap } from "@/lib/domain/naming";
 
-/** "Hành trình học tập": vòng tiến độ + lời động viên */
-export function HanhTrinhCard({ xong, tong, phanTram }: { xong: number; tong: number; phanTram: number }) {
+type SoLieu = { buoi: { xong: number; tong: number }; bai: { xong: number; tong: number } };
+
+/** Thanh tiến độ "x/y" — dùng chung mọi trang học sinh để con số luôn khớp nhau */
+export function ThanhXY({ nhan, xong, tong, mau = "bg-xanh-600" }: { nhan: string; xong: number; tong: number; mau?: string }) {
+  const w = tong === 0 ? 0 : Math.min(100, Math.round((xong / tong) * 100));
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-2 text-sm"><span className="font-semibold text-slate-700">{nhan}</span><span className="text-lg font-extrabold text-navy-950">{xong}/{tong}</span></div>
+      <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-xanh-50"><div className={`h-full rounded-full ${mau}`} style={{ width: `${w}%` }} /></div>
+    </div>
+  );
+}
+
+/** "Tiến độ của em": Buổi học x/y + Bài tập a/b (cùng một nguồn số liệu soLieuHs) */
+export function HanhTrinhCard({ buoi, bai, diemTb, huyHieu }: SoLieu & { diemTb?: string | null; huyHieu?: number }) {
+  const xongHet = bai.tong > 0 && bai.xong >= bai.tong && buoi.xong >= buoi.tong;
   return (
     <Card>
-      <CardTitle icon={<Trophy className="h-6 w-6 text-vang-400" />}>Hành trình học tập</CardTitle>
-      <div className="flex items-center gap-5">
-        <ProgressRing value={phanTram} />
-        <div>
-          <p className="text-slate-600">Hoàn thành</p>
-          <p className="text-xl font-extrabold">{xong} / {tong} buổi học</p>
-        </div>
+      <CardTitle icon={<Trophy className="h-6 w-6 text-vang-400" />}>Tiến độ của em</CardTitle>
+      <div className="space-y-3">
+        <ThanhXY nhan="Buổi học đã hoàn thành" xong={buoi.xong} tong={buoi.tong} />
+        <ThanhXY nhan="Bài tập đã nộp" xong={bai.xong} tong={bai.tong} mau="bg-la-500" />
       </div>
-      <div className="mt-4 flex items-center gap-3 rounded-2xl bg-xanh-50 px-4 py-3">
-        <Star className="h-6 w-6 shrink-0 fill-vang-400 text-vang-400" />
-        <div className="text-sm">
-          <p className="font-bold">{phanTram >= 100 ? "Xuất sắc! Em đã hoàn thành tất cả!" : phanTram >= 50 ? "Bạn thật tuyệt vời!" : "Cố lên, em làm được mà!"}</p>
-          <p className="text-slate-600">Cố gắng hoàn thành 100% nhé!</p>
+      <p className="mt-3 flex items-center gap-2 text-sm font-semibold text-navy-800">
+        <Star className="h-5 w-5 shrink-0 fill-vang-400 text-vang-400" />
+        {xongHet ? "Xuất sắc! Em đã hoàn thành tất cả!" : bai.tong - bai.xong > 0 ? `Còn ${bai.tong - bai.xong} bài nữa thôi, cố lên!` : "Em đang làm rất tốt!"}
+      </p>
+      {diemTb !== undefined && (
+        <div className="mt-3 grid grid-cols-2 gap-2 text-center text-sm">
+          <Link href="/ket-qua" className="rounded-xl bg-xanh-50 px-2 py-2 hover:bg-xanh-100">Điểm TB<br /><b className="text-lg">{diemTb ?? "—"}</b></Link>
+          <Link href="/ket-qua" className="rounded-xl bg-xanh-50 px-2 py-2 hover:bg-xanh-100">Huy hiệu<br /><b className="text-lg">{huyHieu ?? 0}</b></Link>
         </div>
-        <Image src={IMG.sidebarRocket} alt="" width={56} height={44} className="ml-auto hidden rounded-lg sm:block" />
-      </div>
+      )}
     </Card>
   );
 }

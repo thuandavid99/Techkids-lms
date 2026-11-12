@@ -4,6 +4,7 @@ import { Paperclip } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Card, PageGrid, PageHeader, CardTitle } from "@/components/ui/Card";
 import { ConfirmButton, ActionButton } from "@/components/ui/Modal";
+import { GiaoChoAi } from "@/components/teacher/GiaoChoAi";
 import { BaiTapForm, HanNopLop, type BaiTapVals } from "@/components/teacher/BaiTapForm";
 import { UploadButton } from "@/components/teacher/UploadButton";
 import { xoaBaiTap, anHienBaiTap, xinLinkFileDe, xacNhanFileDe, xoaFileDe } from "@/lib/actions/gv/bt";
@@ -29,6 +30,12 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     sb.from("assignment_files").select("*").eq("assignment_id", id),
     sb.from("student_overrides").select("student_id, han_nop_rieng, mien_nop, ly_do, profiles(ho_ten, ma_hs)").eq("assignment_id", id),
   ]);
+  // "Giao cho ai": học sinh các lớp dùng bài này (RLS: GV chỉ thấy học sinh lớp mình)
+  const [{ data: dsHs }, { data: daGiao }] = await Promise.all([
+    sb.from("profiles").select("id, ho_ten, ma_hs, class_id").eq("vai_tro", "hoc_sinh").is("deleted_at", null).eq("dang_hoc", true)
+      .in("class_id", (cc ?? []).map((x) => x.class_id)).order("ma_hs"),
+    sb.from("assignment_students").select("student_id").eq("assignment_id", id),
+  ]);
   const lops = ((cc as unknown as { class_id: string; classes: { ten_lop: string; deleted_at: string | null } | null }[]) ?? [])
     .filter((x) => x.classes && !x.classes.deleted_at && (!lesson.class_id || x.class_id === lesson.class_id))
     .map((x) => ({ id: x.class_id, ten_lop: x.classes!.ten_lop }));
@@ -53,6 +60,11 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         </Card>
       }
       aside={<>
+        <Card>
+          <CardTitle>Giao cho ai</CardTitle>
+          <GiaoChoAi assignmentId={id} chiRieng0={!!a.chi_rieng} chon0={((daGiao as { student_id: string }[] | null) ?? []).map((x) => x.student_id)}
+            hs={((dsHs as { id: string; ho_ten: string; ma_hs: string; class_id: string }[] | null) ?? []).map((h) => ({ id: h.id, ten: h.ho_ten, ma: h.ma_hs, lop: lops.find((l) => l.id === h.class_id)?.ten_lop ?? "" }))} />
+        </Card>
         <Card>
           <CardTitle>Hạn nộp từng lớp</CardTitle>
           <HanNopLop assignmentId={id} ds={lops.map((l) => ({ classId: l.id, ten: l.ten_lop, han: toVNInput(hanMap.get(l.id)) }))} />

@@ -42,29 +42,34 @@ export function BaiTapForm({ v, lops, soBaiNop, banRieng, suaChung = true }: { v
         <div><label className="label" htmlFor="td">Tên bài tập</label><input id="td" name="tieu_de" required defaultValue={cur.tieu_de} className="input" /></div>
       </div>
       <div><span className="label">Đề bài</span><MarkdownEditor name="de_bai" defaultValue={cur.de_bai} rows={10} placeholder="Viết đề bài… (có thể chèn khối code mẫu)" /></div>
-      <div className="grid gap-3 sm:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-3">
         <div><label className="label" htmlFor="ln">Loại bài nộp</label>
           <select id="ln" name="loai_nop" defaultValue={cur.loai_nop} className="input">
             <option value="code">Nộp code</option><option value="file">Nộp file</option><option value="ca_hai">Cả hai</option><option value="ngoai_he_thong">Ngoài hệ thống</option>
           </select></div>
         <div><label className="label" htmlFor="dm">Điểm tối đa</label><input id="dm" name="diem_toi_da" type="number" step="0.5" min="1" max="100" defaultValue={cur.diem_toi_da} className="input" /></div>
-        <div><label className="label" htmlFor="hs">Hệ số</label><input id="hs" name="he_so" type="number" step="0.5" min="0.5" max="10" defaultValue={cur.he_so} className="input" /></div>
-        <div><label className="label" htmlFor="hk">Học kỳ</label><select id="hk" name="hoc_ky" defaultValue={cur.hoc_ky} className="input"><option value="1">Học kỳ 1</option><option value="2">Học kỳ 2</option></select></div>
+        <div><label className="label" htmlFor="sb">Số bài nhỏ (số tab code)</label><input id="sb" name="so_bai" type="number" min="1" max="50" step="1" defaultValue={cur.so_bai ?? 1} className="input" aria-describedby="sb-goi-y" /></div>
       </div>
-      <div className="rounded-2xl border border-vien bg-xanh-50/50 p-3">
-        <label className="label" htmlFor="sb">Số bài nhỏ trong phiếu (số tab code)</label>
-        <div className="flex flex-wrap items-center gap-3">
-          <input id="sb" name="so_bai" type="number" min="1" max="50" step="1" defaultValue={cur.so_bai ?? 1} className="input !w-28" />
-          <p className="hang-chu text-sm text-slate-600">1 = bài thường (một ô code). Ví dụ phiếu có 10 bài → nhập <b>10</b>: học sinh làm trong 10 tab <i>Bài 1…Bài 10</i>, nộp một lần; thầy chấm ✓/✗ từng bài, web gợi ý điểm.</p>
+      <p id="sb-goi-y" className="-mt-2 text-xs text-slate-500">Số bài = 1 là bài thường. Phiếu có 10 bài → nhập 10: học sinh làm 10 tab, nộp một lần; thầy chấm ✓/✗ từng bài.</p>
+      <details className="group rounded-2xl border border-vien bg-xanh-50/40 p-3">
+        <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-2 font-semibold text-navy-800">
+          <span className="transition-transform group-open:rotate-90">▸</span> Tùy chọn nâng cao
+          <span className="text-xs font-normal text-slate-500">({[cur.bat_buoc ? "bắt buộc" : "tùy chọn", cur.tinh_diem ? `tính điểm, hệ số ${cur.he_so}` : "không tính điểm", `HK${cur.hoc_ky}`, cur.cho_nop_tre ? "cho nộp trễ" : null, cur.khoa_nop ? "đang khóa nộp" : null, cur.hien_thi ? null : "đang ẩn"].filter(Boolean).join(" · ")})</span>
+        </summary>
+        <div className="mt-3 space-y-3">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div><label className="label" htmlFor="hs">Hệ số</label><input id="hs" name="he_so" type="number" step="0.5" min="0.5" max="10" defaultValue={cur.he_so} className="input" /></div>
+            <div><label className="label" htmlFor="hk">Học kỳ</label><select id="hk" name="hoc_ky" defaultValue={cur.hoc_ky} className="input"><option value="1">Học kỳ 1</option><option value="2">Học kỳ 2</option></select></div>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Chk n="bat_buoc" l="Bắt buộc (bỏ tích = tùy chọn)" d={cur.bat_buoc} />
+            <Chk n="tinh_diem" l="Tính vào điểm" d={cur.tinh_diem} />
+            <Chk n="cho_nop_tre" l="Cho phép nộp trễ" d={cur.cho_nop_tre} />
+            <Chk n="khoa_nop" l="Khóa nộp" d={cur.khoa_nop} />
+            <Chk n="hien_thi" l="Hiện cho học sinh" d={cur.hien_thi} />
+          </div>
         </div>
-      </div>
-      <div className="flex flex-wrap gap-x-6 gap-y-2">
-        <Chk n="bat_buoc" l="Bắt buộc (bỏ tích = tùy chọn)" d={cur.bat_buoc} />
-        <Chk n="cho_nop_tre" l="Cho phép nộp trễ" d={cur.cho_nop_tre} />
-        <Chk n="khoa_nop" l="Khóa nộp" d={cur.khoa_nop} />
-        <Chk n="tinh_diem" l="Tính vào điểm" d={cur.tinh_diem} />
-        <Chk n="hien_thi" l="Hiện cho học sinh" d={cur.hien_thi} />
-      </div>
+      </details>
       {soBaiNop > 0 && (
         <div>
           <label className="inline-flex items-center gap-2"><input type="checkbox" name="bao_lop" checked={baoLop} onChange={(e) => setBaoLop(e.target.checked)} /> Gửi thông báo cho lớp</label>
@@ -87,7 +92,7 @@ export function HanNopLop({ assignmentId, ds }: { assignmentId: string; ds: { cl
     <ul className="space-y-2">
       {ds.map((d) => (
         <li key={d.classId} className="flex flex-wrap items-center gap-2">
-          <span className="w-24 font-semibold">Lớp {d.ten}</span>
+          <span className="chu-dai w-full font-semibold">{/^lớp/i.test(d.ten) ? d.ten : `Lớp ${d.ten}`}</span>
           <input type="datetime-local" value={vals[d.classId] ?? ""} onChange={(e) => setVals((x) => ({ ...x, [d.classId]: e.target.value }))} className="input !w-56" aria-label={`Hạn nộp lớp ${d.ten}`} />
           <Button size="sm" variant="outline" disabled={pending || vals[d.classId] === d.han}
             onClick={() => start(async () => { const kq = await datHanNop(assignmentId, d.classId, vals[d.classId] ?? ""); if (kq.ok) { toast(kq.tb!); router.refresh(); } else toast(kq.loi!, "loi"); })}>Lưu hạn</Button>

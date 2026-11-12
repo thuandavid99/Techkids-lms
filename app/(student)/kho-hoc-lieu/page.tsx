@@ -2,13 +2,12 @@ import { Search } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
 import { duLieuHs } from "@/lib/server/hs";
 import { IMG } from "@/lib/brand";
-import { Card, PageGrid, RobotCard, BrandCard } from "@/components/ui/Card";
-import { PillTabs, FileIcon } from "@/components/ui/Misc";
+import { Card, PageGrid } from "@/components/ui/Card";
+import { PillTabs } from "@/components/ui/Misc";
 import { Pill } from "@/components/ui/Pill";
 import { EmptyState } from "@/components/ui/States";
 import { MaterialRow } from "@/components/student/MaterialRow";
 import { tenBuoi } from "@/lib/domain/naming";
-import { fmtAgo } from "@/lib/domain/time";
 import { cmpKey } from "@/lib/domain/order";
 import type { TaiLieu } from "@/lib/types";
 
@@ -43,6 +42,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ l
   }
   const cacNhom = [...nhom.values()].sort((a, b) => cmpKey(a.thuTu, b.thuTu));
   const moi = (d: string) => Date.now() - new Date(d).getTime() < 7 * 864e5;
+  const soMoi = tatCa.filter((m) => moi(m.tao_luc)).length;
   const href = (x: Record<string, string>) => "/kho-hoc-lieu?" + new URLSearchParams({ ...(loai && { loai }), ...(q && { q }), ...(locBuoi && { buoi: locBuoi }), ...x }).toString();
 
   return (
@@ -51,6 +51,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ l
         <Card>
           <div className="mb-4 flex flex-wrap items-center gap-3">
             <h1 className="h-page">Kho học liệu</h1>
+            {soMoi > 0 && <Pill mau="green">{soMoi} tài liệu mới trong 7 ngày</Pill>}
             <PillTabs active={loai || "all"} tabs={[{ key: "all", label: "Tất cả", href: href({ loai: "" }) }, ...[...tenCat].map(([id, ten]) => ({ key: id, label: ten, href: href({ loai: id }) }))]} />
           </div>
           <form className="mb-4 flex flex-wrap gap-2" action="/kho-hoc-lieu">
@@ -78,24 +79,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ l
           )}
         </Card>
       }
-      aside={<>
-        <Card>
-          <h2 className="h-card mb-3">Tài liệu mới cập nhật</h2>
-          {tatCa.length === 0 ? <p className="text-sm text-slate-500">Chưa có.</p> : (
-            <ul className="space-y-3">
-              {tatCa.slice(0, 5).map((m) => (
-                <li key={m.id} className="flex items-center gap-3">
-                  <FileIcon ten={m.ten_goc ?? m.tieu_de} nguon={m.nguon} />
-                  <a href={`/api/tai-ve?loai=tai-lieu&id=${m.id}${m.cho_phep_tai || m.nguon === "link" ? "" : "&xem=1"}`} className="line-clamp-2 min-w-0 flex-1 chu-dai font-medium hover:text-xanh-600" title={m.tieu_de}>{m.tieu_de}</a>
-                  {moi(m.tao_luc) ? <Pill mau="green">mới</Pill> : <span className="text-xs text-slate-400">{fmtAgo(m.tao_luc)}</span>}
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-        <RobotCard img={IMG.books} title="Kho kiến thức Python bổ ích!" />
-        <BrandCard />
-      </>}
     />
   );
 }

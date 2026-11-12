@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { lopDangChon } from "@/lib/server/lop";
+import { SubNavLop } from "@/components/teacher/SubNavLop";
 import { duLieuLop } from "@/lib/server/gv";
 import { baiTapLop } from "@/lib/server/data";
 import { Card, PageHeader } from "@/components/ui/Card";
@@ -17,7 +18,7 @@ const LOAI: Record<string, string> = { code: "Code", file: "File", ca_hai: "Code
 export default async function Page({ searchParams }: { searchParams: Promise<{ lop?: string; buoi?: string; han?: string; bb?: string }> }) {
   const sp = await searchParams;
   const sb = await createClient();
-  const { lops, lop } = await lopDangChon(sb, sp.lop);
+  const { lop } = await lopDangChon(sb, sp.lop);
   if (!lop) return <Card><EmptyState title="Chưa có lớp" action={<ButtonLink href="/gv/lop">Tạo lớp</ButtonLink>} /></Card>;
   const [bts, { rows, buoi, hs }] = await Promise.all([baiTapLop(sb, lop.id), duLieuLop(sb, lop.id)]);
   const now = new Date();
@@ -37,10 +38,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ l
     .sort((a, b) => (thuTu.get(a.lesson_id) ?? 0) - (thuTu.get(b.lesson_id) ?? 0) || a.ma.localeCompare(b.ma, "vi", { numeric: true }));
 
   return (
+    <>
+    <SubNavLop id={lop.id} />
     <Card>
       <PageHeader title={`Tất cả bài tập – Lớp ${lop.ten_lop}`} actions={<ButtonLink href="/gv/chuong-trinh" variant="secondary">+ Thêm bài tập (trong buổi học)</ButtonLink>} />
       <form className="mb-4 flex flex-wrap gap-2" action="/gv/bai-tap">
-        <select name="lop" defaultValue={lop.id} className="input !w-auto !rounded-2xl" aria-label="Lớp">{lops.map((l) => <option key={l.id} value={l.id}>Lớp {l.ten_lop}</option>)}</select>
+        <input type="hidden" name="lop" value={lop.id} />
         <select name="buoi" defaultValue={sp.buoi ?? ""} className="input !w-auto max-w-[280px] !rounded-2xl" aria-label="Buổi"><option value="">Mọi buổi</option>{buoi.map((b) => <option key={b.lesson_id} value={b.lesson_id}>{tenB.get(b.lesson_id)}</option>)}</select>
         <select name="han" defaultValue={sp.han ?? ""} className="input !w-auto !rounded-2xl" aria-label="Hạn nộp"><option value="">Mọi hạn</option><option value="sap_toi">Hạn trong 7 ngày</option><option value="da_qua">Đã qua hạn</option><option value="chua_dat">Chưa đặt hạn</option></select>
         <select name="bb" defaultValue={sp.bb ?? ""} className="input !w-auto !rounded-2xl" aria-label="Loại"><option value="">Bắt buộc + tùy chọn</option><option value="bat_buoc">Chỉ bắt buộc</option><option value="tuy_chon">Chỉ tùy chọn</option></select>
@@ -72,5 +75,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ l
         </div>
       )}
     </Card>
+    </>
   );
 }

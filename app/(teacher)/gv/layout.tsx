@@ -12,26 +12,19 @@ import { KhongCoQuyen } from "@/components/ui/States";
 //  - Giáo viên: chỉ lớp mình phụ trách; Chương trình học ở chế độ xem;
 //    Cài đặt chỉ có phần cá nhân (đổi mật khẩu)
 // =====================================================================
-const MENU_QT: NavItem[] = [
-  { href: "/gv", label: "Tổng quan", icon: "home", exact: true },
-  { href: "/gv/lop", label: "Quản lý lớp", icon: "lop" },
-  { href: "/gv/bai-tap", label: "Bài tập", icon: "bai" },
-  { href: "/gv/hoc-sinh", label: "Học sinh", icon: "hs" },
-  { href: "/gv/bao-cao", label: "Báo cáo", icon: "kq" },
-  { href: "/gv/chuong-trinh", label: "Chương trình học", icon: "ct" },
-  { href: "/gv/giao-vien", label: "Giáo viên", icon: "gv" },
-  { href: "/gv/cai-dat", label: "Cài đặt", icon: "caidat" },
-];
-
+// Menu gọn: mỗi việc một chỗ. "match" = các trang con thuộc mục đó (để tô sáng đúng mục)
+const LOP = ["/gv/lop", "/gv/hoc-sinh", "/gv/bao-cao", "/gv/bai-tap"];
+const CHAM = ["/gv/bai-tap/hang-doi", "/gv/bai-tap/cham", "/gv/bai-tap/nhap-diem"];
+const CT = ["/gv/chuong-trinh", "/gv/bai-tap/sua"];
 const MENU_GV: NavItem[] = [
   { href: "/gv", label: "Tổng quan", icon: "home", exact: true },
-  { href: "/gv/lop", label: "Lớp của tôi", icon: "lop" },
-  { href: "/gv/bai-tap", label: "Bài tập", icon: "bai" },
-  { href: "/gv/hoc-sinh", label: "Học sinh", icon: "hs" },
-  { href: "/gv/bao-cao", label: "Báo cáo", icon: "kq" },
-  { href: "/gv/chuong-trinh", label: "Chương trình học", icon: "ct" },
-  { href: "/gv/cai-dat", label: "Cài đặt", icon: "caidat" },
+  { href: "/gv/lop", label: "Lớp học", icon: "lop", match: LOP },
+  { href: "/gv/bai-tap/hang-doi", label: "Chấm bài", icon: "bai", match: CHAM },
+  { href: "/gv/chuong-trinh", label: "Chương trình", icon: "ct", match: CT },
+  { href: "/gv/thong-bao", label: "Hộp thư", icon: "thu" },
+  { href: "/gv/cai-dat", label: "Cài đặt", icon: "caidat", match: ["/gv/cai-dat", "/gv/giao-vien", "/gv/huong-dan"] },
 ];
+const MENU_QT = MENU_GV;
 
 export default async function TeacherLayout({ children }: { children: React.ReactNode }) {
   const p = await getTeacherOrNull();

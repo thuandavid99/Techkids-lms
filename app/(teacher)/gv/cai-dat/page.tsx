@@ -1,20 +1,23 @@
-import { Trash2, History, DatabaseBackup, Download } from "lucide-react";
+import { DatabaseBackup, Download } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getProfile, laQuanTri } from "@/lib/auth";
 import { cacLoaiBuoi, caiDat } from "@/lib/server/data";
 import { Card, CardTitle, PageHeader } from "@/components/ui/Card";
-import { ButtonLink, btnClass } from "@/components/ui/Button";
+import { btnClass } from "@/components/ui/Button";
+import { SubNavCaiDat } from "@/components/teacher/SubNavCaiDat";
 import { LoaiBuoiList, DanhMucDon } from "@/components/teacher/DanhMuc";
 import { QuyTacForm, DoiMatKhauGvForm } from "@/components/teacher/CaiDatForms";
 
 export const metadata = { title: "Cài đặt" };
 
-export default async function Page() {
+export default async function Page({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  const tab = (await searchParams).tab ?? "chung";
   const p = await getProfile();
   if (!laQuanTri(p)) {
     // Giáo viên thường: chỉ phần cá nhân. Cài đặt hệ thống do quản trị quản lý.
     return (
       <div className="space-y-5">
+        <SubNavCaiDat qt={false} />
         <PageHeader title="Cài đặt" sub="Loại buổi, phân loại tài liệu, nhận xét mẫu, mẫu tin nhắn… do quản trị cài đặt cho cả trung tâm." />
         <div className="grid gap-5 lg:grid-cols-2">
           <Card><CardTitle>Đổi mật khẩu</CardTitle><DoiMatKhauGvForm /></Card>
@@ -36,22 +39,26 @@ export default async function Page() {
   ]);
   return (
     <div className="space-y-5">
-      <PageHeader title="Cài đặt" actions={<>
-        <ButtonLink href="/gv/cai-dat/thung-rac" variant="outline"><Trash2 className="h-4 w-4" /> Thùng rác</ButtonLink>
-        <ButtonLink href="/gv/cai-dat/nhat-ky" variant="outline"><History className="h-4 w-4" /> Nhật ký thay đổi</ButtonLink>
-      </>} />
+      <SubNavCaiDat qt />
+      <PageHeader title="Cài đặt" />
       <div className="grid gap-5 lg:grid-cols-2">
+        {tab === "chung" && <>
         <Card><CardTitle>Loại buổi</CardTitle><LoaiBuoiList ds={loai} /></Card>
         <Card><CardTitle>Phân loại tài liệu</CardTitle><DanhMucDon bang="material_categories" ds={cats ?? []} /></Card>
+        <Card><CardTitle>Quy tắc chung</CardTitle><QuyTacForm lamTron={Number(cd.lam_tron_diem ?? 1)} choNopTre={cd.cho_nop_tre_mac_dinh !== false} hsTaiPhieu={cd.hs_tai_phieu_tien_do === true} /></Card>
+        </>}
+        {tab === "mau" && <>
         <Card><CardTitle>Nhận xét mẫu khi chấm</CardTitle><DanhMucDon bang="comment_templates" ds={nx ?? []} /></Card>
         <Card><CardTitle>Mẫu tin nhắn phụ huynh</CardTitle><DanhMucDon bang="message_templates" ds={mt ?? []} /></Card>
-        <Card><CardTitle>Quy tắc chung</CardTitle><QuyTacForm lamTron={Number(cd.lam_tron_diem ?? 1)} choNopTre={cd.cho_nop_tre_mac_dinh !== false} hsTaiPhieu={cd.hs_tai_phieu_tien_do === true} /></Card>
+        </>}
+        {tab === "tai-khoan" && <>
         <Card><CardTitle>Đổi mật khẩu giáo viên</CardTitle><DoiMatKhauGvForm /></Card>
-        <Card className="lg:col-span-2">
+        <Card>
           <CardTitle icon={<DatabaseBackup className="h-6 w-6 text-la-600" />}>Sao lưu dữ liệu</CardTitle>
           <p className="text-sm text-slate-600">Gói Supabase miễn phí <b>không tự sao lưu</b>. Mỗi tháng (và cuối mỗi học kỳ) thầy bấm nút dưới để tải 1 file Excel gồm: danh sách học sinh, mọi bài nộp (kèm code), điểm, nhận xét — rồi cất vào Google Drive.</p>
           <a href="/api/gv/xuat?loai=sao-luu" className={btnClass("green", "md", "mt-3")}><Download className="h-4 w-4" /> Tải file sao lưu (.xlsx)</a>
         </Card>
+        </>}
       </div>
     </div>
   );

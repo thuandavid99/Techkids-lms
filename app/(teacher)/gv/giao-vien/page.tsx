@@ -1,3 +1,4 @@
+import { SubNavCaiDat } from "@/components/teacher/SubNavCaiDat";
 import { getAdminOrNull } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Card, PageHeader } from "@/components/ui/Card";
@@ -28,9 +29,12 @@ export default async function Page() {
     dang_nhap_cuoi: lanCuoi.get(p.id)?.at ? fmtDateTime(lanCuoi.get(p.id)!.at!) : null,
   }));
   return (
+    <>
+    <SubNavCaiDat qt={true} />
     <Card>
       <PageHeader title="Giáo viên" sub="Quản trị toàn quyền. Giáo viên chỉ thấy lớp được gán. Giáo viên đăng nhập ở trang /giao-vien bằng email." />
       <QuanLyGiaoVien ds={ds} lops={lops ?? []} />
     </Card>
+    </>
   );
 }

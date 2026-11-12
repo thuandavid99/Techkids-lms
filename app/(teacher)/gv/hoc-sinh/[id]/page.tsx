@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Printer, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { dongBaiHs, toDongBai, caiDat } from "@/lib/server/data";
+import { dongBaiHs, toDongBai, caiDat, buoiLop } from "@/lib/server/data";
+import { CaNhanHoa } from "@/components/teacher/CaNhanHoa";
+import { tenBuoi } from "@/lib/domain/naming";
 import { Card, PageGrid, PageHeader, CardTitle } from "@/components/ui/Card";
 import { Avatar, Stat } from "@/components/ui/Misc";
 import { NhanBai, Pill } from "@/components/ui/Pill";
@@ -31,6 +33,19 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     sb.from("enrollments").select("nam_hoc, tu_ngay, den_ngay, classes(ten_lop)").eq("student_id", id).order("tu_ngay", { ascending: false }),
     caiDat(sb),
   ]);
+  // Cá nhân hóa: buổi lớp đang khóa / đã mở riêng cho em, các bài riêng của em
+  const [lich, { data: moRieng }, { data: rieng }] = await Promise.all([
+    p.class_id ? buoiLop(sb, p.class_id) : Promise.resolve([]),
+    sb.from("student_lesson_access").select("lesson_id").eq("student_id", id),
+    sb.from("assignment_students").select("assignment_id, assignments(ma, tieu_de, deleted_at)").eq("student_id", id),
+  ]);
+  const idRieng = new Set(((moRieng as { lesson_id: string }[] | null) ?? []).map((x) => x.lesson_id));
+  const tenB = (b: { nhan_buoi: string; tieu_de: string }) => tenBuoi(b.nhan_buoi, b.tieu_de);
+  const buoiKhoa = lich.filter((b) => !b.da_mo && !b.ban_nhap && !idRieng.has(b.lesson_id)).map((b) => ({ lesson_id: b.lesson_id, ten: tenB(b) }));
+  const buoiMoRieng = lich.filter((b) => idRieng.has(b.lesson_id)).map((b) => ({ lesson_id: b.lesson_id, ten: tenB(b) }));
+  const baiTapChon = rows0.map((r) => ({ assignment_id: r.assignment_id, ten: tenBaiTap(r.ma, r.tieu_de), han: r.han_lop ? fmtShort(r.han_lop) : "chưa đặt", hanRieng: r.han_nop_rieng ? fmtShort(r.han_nop_rieng) : null, mien: !!r.mien_nop }));
+  type RowRieng = { assignment_id: string; assignments: { ma: string; tieu_de: string; deleted_at: string | null } | null };
+  const baiRieng = ((rieng as RowRieng[] | null) ?? []).filter((x) => x.assignments && !x.assignments.deleted_at).map((x) => ({ assignment_id: x.assignment_id, ten: tenBaiTap(x.assignments!.ma, x.assignments!.tieu_de) }));
   const rows = rows0.map(toDongBai);
   const now = new Date();
   const mo = rows.filter((r) => r.da_mo);
@@ -84,6 +99,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         </Card>
       </>}
       aside={<>
+        <CaNhanHoa studentId={id} tenHs={p.ho_ten} buoiKhoa={buoiKhoa} buoiMoRieng={buoiMoRieng} baiTap={baiTapChon} baiRieng={baiRieng} />
         <Card><CardTitle>Ghi chú riêng của thầy</CardTitle><GhiChu studentId={id} ds={notes ?? []} /></Card>
         <Card>
           <CardTitle>Lịch sử nhắc phụ huynh</CardTitle>

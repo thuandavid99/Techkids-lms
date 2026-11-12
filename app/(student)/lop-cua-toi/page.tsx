@@ -1,9 +1,7 @@
-import Image from "next/image";
 import { requireStudent } from "@/lib/auth";
 import { duLieuHs } from "@/lib/server/hs";
-import { IMG } from "@/lib/brand";
-import { Card, PageGrid, PageHeader, BrandCard } from "@/components/ui/Card";
-import { ProgressRing } from "@/components/ui/Misc";
+import { Card, PageGrid, PageHeader } from "@/components/ui/Card";
+import { ThanhXY } from "@/components/student/Cards";
 import { EmptyState } from "@/components/ui/States";
 import { TEN_THU } from "@/lib/domain/time";
 import { soTrongNhan } from "@/lib/domain/naming";
@@ -28,17 +26,14 @@ export default async function Page() {
       main={<>
         <Card>
           <PageHeader back={{ href: "/", label: "Quay lại" }} title={`Lớp ${lop.ten_lop}`} sub={`Năm học ${lop.nam_hoc}`} />
-          <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
+          <div className="space-y-4">
             <ul className="space-y-2 text-[1.05rem]">
               <li>Sĩ số: <b>{(ban as unknown[])?.length ?? 0} học sinh</b></li>
               <li>Giáo viên: <b>{((gv as { ho_ten: string }[]) ?? []).map((g) => g.ho_ten).join(", ") || "—"}</b></li>
               <li>Lịch học: <b>{lichThu.length ? lichThu.map((t) => TEN_THU[t]).join(", ") : "—"}</b></li>
               <li>Tiến độ lớp: <b>đang ở buổi {dangO}/{tongBuoi}</b></li>
             </ul>
-            <div className="flex items-center gap-4">
-              <ProgressRing value={tongBuoi ? Math.round((daDay.length / tongBuoi) * 100) : 0} size={110} />
-              <Image src={IMG.school} alt="" width={120} height={90} unoptimized className="hidden h-auto w-28 sm:block" />
-            </div>
+            <ThanhXY nhan="Cả lớp đã học" xong={daDay.length} tong={tongBuoi} />
           </div>
         </Card>
         <Card>
@@ -48,7 +43,6 @@ export default async function Page() {
           </ul>
         </Card>
       </>}
-      aside={<BrandCard />}
     />
   );
 }

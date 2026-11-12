@@ -77,9 +77,10 @@ Mở từng file trong thư mục `supabase/` bằng VS Code → **Ctrl+A**, **C
 | 4 | `supabase/004_views_functions.sql` | View tính trạng thái nộp bài, hàm nộp/chấm, thông báo tự động |
 | 5 | `supabase/005_giao_vien_rieng.sql` | **Phân loại tài khoản**: Quản trị / Giáo viên (mỗi GV chỉ thấy lớp mình) |
 | 6 | `supabase/006_mo_buoi_nhieu_bai.sql` | **Nút gạt mở buổi** (thầy tự mở / tự mở theo lịch), **bài tập nhiều tab** (Bài 1…N, chấm ✓/✗), hàm giữ web “thức” |
-| 7 (tùy chọn) | `supabase/seed.sql` | Loại buổi, phân loại tài liệu, nhận xét mẫu, mẫu tin nhắn mặc định |
+| 7 | `supabase/007_ca_nhan_hoa.sql` | **Cá nhân hóa từng học sinh**: mở buổi riêng, bài tập chỉ giao cho vài em |
+| 8 (tùy chọn) | `supabase/seed.sql` | Loại buổi, phân loại tài liệu, nhận xét mẫu, mẫu tin nhắn mặc định |
 
-> Đã chạy 001–004 từ trước? Chỉ cần chạy thêm **005**. Nếu sau này chạy lại 002 hoặc 004, **luôn chạy lại 005 sau cùng**.
+> Đã chạy 001–004 từ trước? Chỉ cần chạy thêm **005**. Nếu sau này chạy lại 002 hoặc 004, **luôn chạy lại 005 → 006 → 007 theo thứ tự**.
 
 - Mỗi lần **Run** thấy chữ **Success. No rows returned** là đúng.
 - Chạy lại một file **không làm mất dữ liệu** (các file viết kiểu "nếu chưa có thì tạo").

@@ -22,8 +22,9 @@ export async function duLieuLop(sb: SB, classId: string) {
 }
 
 /** "Đang ở buổi N / tổng" của lớp */
-export function dangOBuoi(buoi: { da_day: boolean; nhan_buoi: string }[]) {
-  const daDay = buoi.filter((b) => b.da_day);
+/** "Đang ở buổi x/y": buổi đã dạy = thầy đánh dấu HOẶC ngày học đã qua (không cần tích tay) */
+export function dangOBuoi(buoi: { da_day: boolean; nhan_buoi: string; ngay_hoc?: string | null }[], homNay: string = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }).format(new Date())) {
+  const daDay = buoi.filter((b) => b.da_day || (!!b.ngay_hoc && b.ngay_hoc < homNay));
   const cuoi = daDay[daDay.length - 1];
   const tong = buoi.reduce((s, b) => s + Math.max(1, soTrongNhan(b.nhan_buoi).length), 0);
   return { dangO: cuoi ? soTrongNhan(cuoi.nhan_buoi).at(-1) ?? daDay.length : 0, tong };

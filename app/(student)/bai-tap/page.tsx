@@ -2,7 +2,7 @@ import { ClipboardList, UserCheck, ClipboardPen, BadgeCheck } from "lucide-react
 import { requireStudent } from "@/lib/auth";
 import { duLieuHs } from "@/lib/server/hs";
 import { IMG } from "@/lib/brand";
-import { Card, PageGrid, RobotCard, BrandCard } from "@/components/ui/Card";
+import { Card, PageGrid, RobotCard } from "@/components/ui/Card";
 import { PillTabs } from "@/components/ui/Misc";
 import { NhanBai, Pill } from "@/components/ui/Pill";
 import { ButtonLink } from "@/components/ui/Button";
@@ -15,13 +15,17 @@ import { fmtDate } from "@/lib/domain/time";
 
 export const metadata = { title: "Danh sách bài tập" };
 
+// Một hàng lọc duy nhất (trước đây có 2 hàng: trạng thái + hạn)
 const TABS = [
-  { key: "tat-ca", label: "Tất cả" }, { key: "can-lam", label: "Cần làm ngay" },
+  { key: "tat-ca", label: "Tất cả" }, { key: "can-lam", label: "Cần làm" },
+  { key: "sap-han", label: "Sắp hết hạn" }, { key: "qua-han", label: "Quá hạn" },
   { key: "da-nop", label: "Đã nộp" }, { key: "da-cham", label: "Đã chấm" },
 ];
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ tab?: string; han?: string }> }) {
-  const { tab = "tat-ca", han = "" } = await searchParams;
+  const sp = await searchParams;
+  // Link cũ dạng ?han=7ngay / ?han=qua-han vẫn chạy
+  const tab = sp.han === "7ngay" ? "sap-han" : sp.han === "qua-han" ? "qua-han" : sp.tab ?? "tat-ca";
   const p = await requireStudent();
   const { dong, cd } = await duLieuHs(p);
   const now = new Date();
@@ -30,27 +34,21 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
     if (tab === "can-lam" && !(r.loai_nop !== "ngoai_he_thong" && !r.mien_nop && (!k.daNop || k.trangThai === "can_nop_lai"))) return false;
     if (tab === "da-nop" && !(k.daNop && k.trangThai !== "da_cham")) return false;
     if (tab === "da-cham" && k.trangThai !== "da_cham") return false;
-    if (han === "7ngay" && !(k.hanHieuLuc && k.hanHieuLuc.getTime() - now.getTime() < 7 * 864e5 && k.hanHieuLuc > now)) return false;
-    if (han === "qua-han" && !k.quaHanChuaNop) return false;
+    if (tab === "sap-han" && !(!k.daNop && !r.mien_nop && k.hanHieuLuc && k.hanHieuLuc.getTime() - now.getTime() < 7 * 864e5 && k.hanHieuLuc > now)) return false;
+    if (tab === "qua-han" && !k.quaHanChuaNop) return false;
     return true;
-  }).sort((a, b) => (tab === "can-lam" ? (a.k.hanHieuLuc?.getTime() ?? Infinity) - (b.k.hanHieuLuc?.getTime() ?? Infinity) : 0));
+  }).sort((a, b) => (tab === "can-lam" || tab === "sap-han" ? (a.k.hanHieuLuc?.getTime() ?? Infinity) - (b.k.hanHieuLuc?.getTime() ?? Infinity) : 0));
   const pt = phanTramHoanThanh(dong, now);
   const canLam = ds.filter(({ r, k }) => r.loai_nop !== "ngoai_he_thong" && k.tinhVaoHoanThanh && (!k.daNop || k.trangThai === "can_nop_lai")).length;
   const tb = diemTrungBinh(dong, { soChuSo: Number(cd.lam_tron_diem ?? 1) });
-  const q = (t: string) => `/bai-tap?tab=${t}${han ? `&han=${han}` : ""}`;
 
   return (
     <PageGrid
       main={
         <Card>
           <h1 className="h-page mb-4">Danh sách bài tập</h1>
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            <PillTabs active={tab} tabs={TABS.map((t) => ({ ...t, href: q(t.key) }))} />
-            <PillTabs active={han || "all"} tabs={[
-              { key: "all", label: "Mọi hạn", href: `/bai-tap?tab=${tab}` },
-              { key: "7ngay", label: "Hạn trong 7 ngày", href: `/bai-tap?tab=${tab}&han=7ngay` },
-              { key: "qua-han", label: "Quá hạn", href: `/bai-tap?tab=${tab}&han=qua-han` },
-            ]} />
+          <div className="mb-4">
+            <PillTabs active={tab} tabs={TABS.map((t) => ({ ...t, href: `/bai-tap?tab=${t.key}` }))} />
           </div>
           {loc.length === 0 ? <EmptyState title="Không có bài tập nào ở mục này" /> : (
             <div className="space-y-3">
@@ -83,13 +81,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
         <Card>
           <h2 className="h-card mb-3">Thống kê bài tập</h2>
           <ul className="space-y-3">
-            <li className="flex items-center gap-3"><span className="rounded-xl bg-xanh-50 p-2"><UserCheck className="h-5 w-5 text-navy-800" /></span> Hoàn thành: {pt.daNop}/{pt.tong} bài</li>
-            <li className="flex items-center gap-3"><span className="rounded-xl bg-xanh-50 p-2"><ClipboardPen className="h-5 w-5 text-navy-800" /></span> Cần làm: {canLam} bài</li>
+            <li className="flex items-center gap-3"><span className="rounded-xl bg-xanh-50 p-2"><UserCheck className="h-5 w-5 text-navy-800" /></span> Bài tập đã nộp: <b>{pt.daNop}/{pt.tong}</b></li>
+            <li className="flex items-center gap-3"><span className="rounded-xl bg-xanh-50 p-2"><ClipboardPen className="h-5 w-5 text-navy-800" /></span> Cần làm: <b>{canLam}</b> bài</li>
             <li className="flex items-center gap-3"><span className="rounded-xl bg-xanh-50 p-2"><BadgeCheck className="h-5 w-5 text-navy-800" /></span> Điểm TB: {tb === null ? "—" : tb.toFixed(1)}</li>
           </ul>
         </Card>
         <RobotCard img={IMG.cheer} text="Hoàn thành bài tập đúng hạn để nhận huy hiệu nhé!" />
-        <BrandCard />
       </>}
     />
   );

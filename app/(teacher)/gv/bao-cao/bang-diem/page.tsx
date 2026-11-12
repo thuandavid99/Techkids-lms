@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { lopDangChon } from "@/lib/server/lop";
+import { SubNavLop } from "@/components/teacher/SubNavLop";
 import { duLieuLop } from "@/lib/server/gv";
 import { modulesCua, caiDat } from "@/lib/server/data";
 import { Card, PageHeader } from "@/components/ui/Card";
@@ -13,17 +14,19 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ l
   const sp = await searchParams;
   const hk = sp.hk === "2" ? 2 : 1;
   const sb = await createClient();
-  const { lops, lop } = await lopDangChon(sb, sp.lop);
+  const { lop } = await lopDangChon(sb, sp.lop);
   if (!lop) return <Card><EmptyState title="Chưa có lớp" /></Card>;
   const [{ rows }, { data: cc }, cd] = await Promise.all([duLieuLop(sb, lop.id), sb.from("class_curriculum").select("curriculum_id").eq("class_id", lop.id).maybeSingle(), caiDat(sb)]);
   const modules = cc ? await modulesCua(sb, cc.curriculum_id) : [];
   const bd = lapBangDiem(rows, modules, hk, Number(cd.lam_tron_diem ?? 1));
   return (
+    <>
+    <SubNavLop id={lop.id} />
     <Card>
       <PageHeader back={{ href: "/gv/bao-cao", label: "Báo cáo" }} title={`Bảng điểm – Lớp ${lop.ten_lop} – Học kỳ ${hk}`}
         actions={<a href={`/api/gv/xuat?loai=bang-diem&lop=${lop.id}&hk=${hk}`} className={btnClass("navy", "md")}>Tải Excel</a>} />
       <form action="/gv/bao-cao/bang-diem" className="mb-4 flex flex-wrap gap-2">
-        <select name="lop" defaultValue={lop.id} className="input !w-auto !rounded-2xl">{lops.map((l) => <option key={l.id} value={l.id}>Lớp {l.ten_lop}</option>)}</select>
+        <input type="hidden" name="lop" value={lop.id} />
         <select name="hk" defaultValue={hk} className="input !w-auto !rounded-2xl"><option value="1">Học kỳ 1</option><option value="2">Học kỳ 2</option></select>
         <button className={btnClass("outline", "md")}>Xem</button>
       </form>
@@ -45,5 +48,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ l
       )}
       <p className="mt-3 text-sm text-slate-500">TB = Σ(điểm quy thang 10 × hệ số) / Σ hệ số, chỉ tính bài đã chấm, không tính bài miễn nộp.</p>
     </Card>
+    </>
   );
 }

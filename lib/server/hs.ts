@@ -9,14 +9,18 @@ export async function duLieuHs(p: Profile) {
   if (!p.class_id) {
     return { sb, lop: null, rows: [], dong: [], buoi: [], loai: new Map<string, LoaiBuoi>(), modules: [], lichThu: [] as number[], cd: {} as Record<string, unknown> };
   }
-  const [rows, buoi, loai, lopQ, ccQ, cd] = await Promise.all([
+  const [rows, buoi0, loai, lopQ, ccQ, cd, rieng] = await Promise.all([
     dongBaiHs(sb, p.id),
     buoiLop(sb, p.class_id),
     cacLoaiBuoi(sb),
     sb.from("classes").select("*").eq("id", p.class_id).maybeSingle(),
     sb.from("class_curriculum").select("curriculum_id, cac_thu_trong_tuan").eq("class_id", p.class_id).maybeSingle(),
     caiDat(sb),
+    // Buổi thầy mở RIÊNG cho em (học bù / học vượt) — lớp vẫn khóa
+    sb.from("student_lesson_access").select("lesson_id").eq("student_id", p.id),
   ]);
+  const moRieng = new Set(((rieng.data as { lesson_id: string }[] | null) ?? []).map((x) => x.lesson_id));
+  const buoi = buoi0.map((b) => (!b.da_mo && moRieng.has(b.lesson_id) ? { ...b, da_mo: true, mo_rieng: true } : b));
   const modules = ccQ.data ? await modulesCua(sb, ccQ.data.curriculum_id) : [];
   const buoiMo = buoi.filter((b) => b.da_mo);
   const idsMo = new Set(buoiMo.map((b) => b.lesson_id));

@@ -1,3 +1,4 @@
+import { SubNav } from "@/components/teacher/SubNav";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { cacLop, dongBaiTatCa, toDongBai } from "@/lib/server/data";
@@ -28,6 +29,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
   const cumTen = (r: (typeof rows)[number]) => <>{tenLop.get(r.class_id) ?? "?"} · <b>{r.ho_ten}</b> ({r.ma_hs}) · {tenBaiTap(r.ma, r.tieu_de)}</>;
 
   return (
+    <>
+    <SubNav items={[{ href: "/gv/bai-tap/hang-doi", label: "Hàng đợi chấm & Cần hỗ trợ" }, { href: "/gv/bai-tap/nhap-diem", label: "Nhập điểm từ Excel" }]} />
     <Card>
       <PageHeader title="Hàng đợi chấm bài" actions={choCham[0] && <ButtonLink href={`/gv/bai-tap/cham/${choCham[0].submission_id}${lop ? `?lop=${lop}` : ""}`}>Chấm tiếp ({choCham.length})</ButtonLink>} />
       <form className="mb-4 flex flex-wrap gap-2" action="/gv/bai-tap/hang-doi">
@@ -71,5 +74,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
         ))}
       </div>
     </Card>
+    </>
   );
 }

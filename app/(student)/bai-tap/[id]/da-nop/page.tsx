@@ -6,7 +6,7 @@ import { duLieuHs } from "@/lib/server/hs";
 import { soBaiCua } from "@/lib/server/data";
 import { XemBaiNop } from "@/components/shared/XemBaiNop";
 import { IMG } from "@/lib/brand";
-import { BrandCard, PageGrid } from "@/components/ui/Card";
+import { PageGrid } from "@/components/ui/Card";
 import { ButtonLink, btnClass } from "@/components/ui/Button";
 import { NhanBai } from "@/components/ui/Pill";
 import { tinhTrangThai } from "@/lib/domain/status";
@@ -76,7 +76,6 @@ export default async function Page({ params, searchParams }: { params: Promise<{
           <Image src={IMG.celebrate} alt="" width={260} height={270} className="mx-auto h-auto w-56" />
           <p className="mt-2 text-lg">{b ? tenBuoi(b.nhan_buoi, b.tieu_de) : tenBaiTap(r.ma, r.tieu_de)}<br />– {kq.daNop ? "Đã nộp bài" : "Chưa nộp"}</p>
         </div>
-        <BrandCard />
       </>}
     />
   );

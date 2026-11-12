@@ -1,7 +1,7 @@
 -- =====================================================================
 -- tests/sql/rls_test.sql — KIỂM THỬ PHÂN QUYỀN + NỘP/CHẤM BÀI (dành cho lập trình viên)
 -- KHÔNG chạy trên Supabase thật (file tạo người dùng giả trong auth.users).
--- Chạy trên Postgres thử nghiệm sau 00_supabase_stub + 001..006 + seed.
+-- Chạy trên Postgres thử nghiệm sau 00_supabase_stub + 001..007 + seed.
 -- Mỗi kiểm tra in "OK ..." hoặc dừng với lỗi "FAIL ...".
 -- =====================================================================
 \set ON_ERROR_STOP 1
@@ -317,6 +317,55 @@ do $$ declare c uuid; r jsonb; begin
   reset role; set local role anon;
   if song() is null then raise exception 'FAIL 24b'; end if;
   raise notice 'OK 24: GV lớp khác bị chặn đổi chế độ mở; hàm song() gọi được';
+end $$;
+
+-- 25. (007) Mở buổi RIÊNG cho 1 em: em đó thấy buổi + bài của buổi; bạn cùng lớp vẫn bị khóa
+do $$ declare c uuid; l uuid; a uuid; n int; begin
+  reset role;
+  select class_id into c from profiles where id = '00000000-0000-0000-0000-0000000000b1';
+  insert into auth.users(id, email) values ('00000000-0000-0000-0000-0000000000b3', 'hs003@x.vn') on conflict do nothing;
+  insert into profiles(id, ma_hs, ho_ten, vai_tro, class_id) values ('00000000-0000-0000-0000-0000000000b3', 'HS003X', 'Bạn cùng lớp', 'hoc_sinh', c) on conflict (id) do nothing;
+  select b.lesson_id into l from v_buoi_hieu_luc b where b.class_id = c and not b.ban_nhap
+    and exists (select 1 from assignments x where x.lesson_id = b.lesson_id and x.deleted_at is null and x.ghi_de_cua is null) order by b.thu_tu desc limit 1;
+  update class_lessons set hien_thi = false where class_id = c and lesson_id = l;
+  select id into a from assignments where lesson_id = l and deleted_at is null and ghi_de_cua is null limit 1;
+  update assignments set hien_thi = true where id = a;
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000b1', true);
+  if hs_thay_buoi(l) then raise exception 'FAIL 25a: buổi khóa mà HS vẫn thấy'; end if;
+  begin insert into student_lesson_access(student_id, lesson_id) values ('00000000-0000-0000-0000-0000000000b1', l); raise exception 'FAIL 25b: HS tự mở buổi cho mình';
+  exception when others then if sqlerrm like 'FAIL%' then raise; end if; end;
+  perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000a1', true);
+  insert into student_lesson_access(student_id, lesson_id) values ('00000000-0000-0000-0000-0000000000b1', l);
+  perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000b1', true);
+  if not hs_thay_buoi(l) or not exists (select 1 from lessons where id = l) then raise exception 'FAIL 25c: mở riêng mà em không thấy buổi'; end if;
+  if not hs_thay_bai_tap(a) then raise exception 'FAIL 25d: mở riêng mà em không thấy bài của buổi'; end if;
+  select count(*) into n from v_bai_hoc_sinh where assignment_id = a and da_mo;
+  if n <> 1 then raise exception 'FAIL 25e: v_bai_hoc_sinh da_mo = % (cần 1)', n; end if;
+  perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000b3', true);
+  if hs_thay_buoi(l) or hs_thay_bai_tap(a) then raise exception 'FAIL 25f: bạn cùng lớp cũng thấy buổi mở riêng'; end if;
+  raise notice 'OK 25: mở buổi riêng chỉ có tác dụng với đúng 1 em; HS không tự mở được';
+end $$;
+
+-- 26. (007) Bài RIÊNG: chỉ em được giao mới thấy / bị tính; em khác không có dòng "chưa nộp"
+do $$ declare c uuid; a uuid; n1 int; n3 int; r jsonb; begin
+  reset role;
+  select class_id into c from profiles where id = '00000000-0000-0000-0000-0000000000b1';
+  select b.assignment_id into a from v_bai_tap_hieu_luc b where b.class_id = c and public.bai_tap_mo_cho_lop(b.assignment_id, c) limit 1;
+  update assignments set chi_rieng = true where id = a;
+  delete from assignment_students where assignment_id = a;
+  insert into assignment_students values (a, '00000000-0000-0000-0000-0000000000b3');
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000a1', true);
+  select count(*) filter (where student_id = '00000000-0000-0000-0000-0000000000b1'), count(*) filter (where student_id = '00000000-0000-0000-0000-0000000000b3')
+    into n1, n3 from v_bai_hoc_sinh where assignment_id = a;
+  if n1 <> 0 or n3 <> 1 then raise exception 'FAIL 26a: bài riêng tính sai (b1=%, b3=%)', n1, n3; end if;
+  perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000b1', true);
+  if hs_thay_bai_tap(a) then raise exception 'FAIL 26b: em không được giao vẫn thấy bài riêng'; end if;
+  reset role;
+  r := hs_nop_bai('00000000-0000-0000-0000-0000000000b1', a, 'print(1)', null, null, 8, 'text/x-python');
+  if (r->>'ok')::boolean then raise exception 'FAIL 26c: em không được giao vẫn nộp được bài riêng'; end if;
+  raise notice 'OK 26: bài riêng chỉ hiện và chỉ tính cho em được giao';
 end $$;
 
 rollback;

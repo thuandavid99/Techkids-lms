@@ -2,8 +2,7 @@ import { Info, CalendarDays } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { duLieuLop } from "@/lib/server/gv";
 import { modulesCua } from "@/lib/server/data";
-import { IMG } from "@/lib/brand";
-import { Card, CardTitle, PageGrid, RobotCard } from "@/components/ui/Card";
+import { Card, CardTitle, PageGrid } from "@/components/ui/Card";
 import { ProgressRing } from "@/components/ui/Misc";
 import { EmptyState } from "@/components/ui/States";
 import { btnClass } from "@/components/ui/Button";
@@ -88,7 +87,6 @@ export default async function Page({ params, searchParams }: { params: Promise<{
             <div><p className="text-xl font-extrabold">Lớp {lop?.ten_lop}</p><p className="text-sm text-slate-500">{pt.daNop}/{pt.tong} lượt bài bắt buộc đã nộp</p></div>
           </div>
         </Card>
-        <RobotCard img={IMG.tablet} title="Theo dõi sát sao, hỗ trợ kịp thời!" />
       </>}
     />
   );

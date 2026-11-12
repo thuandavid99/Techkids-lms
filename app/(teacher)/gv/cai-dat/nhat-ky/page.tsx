@@ -1,3 +1,4 @@
+import { SubNavCaiDat } from "@/components/teacher/SubNavCaiDat";
 import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/States";
@@ -23,6 +24,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ d
   const [{ data }, { data: nguoi }] = await Promise.all([q, sb.from("profiles").select("id, ho_ten").neq("vai_tro", "hoc_sinh")]);
   const ten = new Map((nguoi ?? []).map((n) => [n.id, n.ho_ten]));
   return (
+    <>
+    <SubNavCaiDat qt={true} />
     <Card>
       <PageHeader back={{ href: "/gv/cai-dat", label: "Cài đặt" }} title="Nhật ký thay đổi" sub="Ghi lại ai sửa gì, lúc nào (điểm đã chấm, hạn nộp, xóa/ẩn nội dung, reset mật khẩu…)." />
       <form className="mb-4 flex flex-wrap gap-2" action="/gv/cai-dat/nhat-ky">
@@ -50,5 +53,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ d
         </ul>
       )}
     </Card>
+    </>
   );
 }

@@ -1,3 +1,4 @@
+import { SubNavCaiDat } from "@/components/teacher/SubNavCaiDat";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminOrNull } from "@/lib/auth";
 import { KhongCoQuyen } from "@/components/ui/States";
@@ -34,6 +35,8 @@ export default async function Page() {
   const conLai = (luc: string) => Math.max(0, 30 - Math.floor((Date.now() - new Date(luc).getTime()) / 864e5));
 
   return (
+    <>
+    <SubNavCaiDat qt={true} />
     <Card>
       <PageHeader back={{ href: "/gv/cai-dat", label: "Cài đặt" }} title="Thùng rác"
         sub="Mục đã xóa được giữ 30 ngày để khôi phục. Bấm “Làm sạch” để xóa vĩnh viễn các mục quá 30 ngày."
@@ -57,5 +60,6 @@ export default async function Page() {
         </div>
       )}
     </Card>
+    </>
   );
 }

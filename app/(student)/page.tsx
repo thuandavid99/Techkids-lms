@@ -1,18 +1,18 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Play, BookOpenText, Code2, FolderOpen, BarChart3, Star, UserRound, Trophy, Award, CalendarDays, ArrowRight, Check } from "lucide-react";
+import { Play, Star, Trophy, CalendarDays, ArrowRight, Check } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
 import { duLieuHs } from "@/lib/server/hs";
 import { BRAND, IMG } from "@/lib/brand";
-import { Card, CardTitle, XemTatCa, BrandCard, PageGrid } from "@/components/ui/Card";
+import { Card, CardTitle, XemTatCa, PageGrid } from "@/components/ui/Card";
 import { ButtonLink } from "@/components/ui/Button";
 import { Avatar, LessonIcon } from "@/components/ui/Misc";
 import { Pill } from "@/components/ui/Pill";
 import { EmptyState } from "@/components/ui/States";
-import { HanhTrinhCard, ThongBaoCard, LopCuaBanCard, SapDenHanCard, type TB } from "@/components/student/Cards";
-import { hanhTrinh, phanTramHoanThanh, diemTrungBinh, tinhHuyHieu } from "@/lib/domain/stats";
-import { trangThaiBuoi, baiCanLamGanNhat } from "@/lib/domain/lesson-status";
-import { tinhTrangThai } from "@/lib/domain/status";
+import { HanhTrinhCard, ThongBaoCard, type TB } from "@/components/student/Cards";
+import { HomNayCanLam } from "@/components/student/HomNayCanLam";
+import { soLieuHs, viecCanLam, diemTrungBinh, tinhHuyHieu } from "@/lib/domain/stats";
+import { trangThaiBuoi } from "@/lib/domain/lesson-status";
 import { tenBuoi } from "@/lib/domain/naming";
 import { BuoiSapMo, type BuoiKhoa } from "@/components/student/BuoiSapMo";
 import { fmtDate } from "@/lib/domain/time";
@@ -24,17 +24,15 @@ export default async function TrangChu() {
   const { sb, lop, dong, buoi, loai, modules, cd } = await duLieuHs(p);
   const now = new Date();
 
-  const [{ data: tbs }, { data: banCungLop }, { data: sapMo }] = await Promise.all([
+  const [{ data: tbs }, { data: sapMo }] = await Promise.all([
     sb.from("notifications").select("id, noi_dung, tao_luc, loai, da_doc, lien_ket").eq("user_id", p.id).order("tao_luc", { ascending: false }).limit(3),
-    sb.rpc("ds_ban_cung_lop"),
     sb.rpc("hs_buoi_sap_mo", { p_so: 1 }),
   ]);
 
-  const ht = hanhTrinh(buoi, dong, now);
-  const pt = phanTramHoanThanh(dong, now);
+  const so = soLieuHs(buoi, dong, now);
+  const viec = viecCanLam(buoi.map((b) => ({ ...b, ten: tenBuoi(b.nhan_buoi, b.tieu_de) })), dong, now);
   const tb = diemTrungBinh(dong, { soChuSo: Number(cd.lam_tron_diem ?? 1) });
   const huyHieu = tinhHuyHieu(dong, now);
-  const canLam = baiCanLamGanNhat(dong, now);
   const ttBuoi = new Map(buoi.map((b) => [b.lesson_id, trangThaiBuoi(b, dong.filter((r) => r.lesson_id === b.lesson_id), now)]));
   const buoiTiep = buoi.find((b) => !ttBuoi.get(b.lesson_id)?.xong) ?? buoi[buoi.length - 1];
   const ganDay = buoi.slice(-4);
@@ -45,13 +43,6 @@ export default async function TrangChu() {
     const ds = buoi.filter((b) => b.module_id === m.id);
     return { ten: m.ten.replace(/^Module\s*\d+\s*[:.-]\s*/i, ""), xong: ds.length > 0 && ds.every((b) => ttBuoi.get(b.lesson_id)?.xong) };
   }).filter((x) => x.ten);
-
-  const NUT = [
-    { href: "/buoi-hoc", label: ["Danh sách", "buổi học"], I: BookOpenText, c: "from-xanh-600 to-xanh-500" },
-    { href: canLam ? `/bai-tap/${canLam.assignment_id}/lam-bai` : "/bai-tap", label: ["Làm bài tập", "Python"], I: Code2, c: "from-cam-500 to-cam-400" },
-    { href: "/kho-hoc-lieu", label: ["Tài liệu", "học tập"], I: FolderOpen, c: "from-tim-500 to-violet-400" },
-    { href: "/ket-qua", label: ["Xem kết quả", ""], I: BarChart3, c: "from-la-500 to-emerald-400" },
-  ];
 
   if (!lop) {
     return <Card><EmptyState title="Em chưa được xếp vào lớp nào" hint="Em báo thầy để được thêm vào lớp nhé." /></Card>;
@@ -93,18 +84,7 @@ export default async function TrangChu() {
           <Image src={IMG.hero} alt="" width={420} height={290} priority className="absolute bottom-0 right-4 h-[95%] w-auto object-contain" />
         </section>
 
-        {/* 4 nút chức năng lớn */}
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          {NUT.map(({ href, label, I, c }) => (
-            <Link key={href + label[0]} href={href} className={`flex min-w-0 items-center gap-2 rounded-2xl bg-gradient-to-br ${c} px-3 py-3.5 text-white shadow-md transition-transform hover:-translate-y-0.5 sm:gap-3 sm:px-4 sm:py-4`}>
-              <I className="h-6 w-6 shrink-0 sm:h-8 sm:w-8" />
-              <span className="min-w-0 text-sm font-semibold leading-tight sm:text-[0.95rem]">{label[0]}<br />{label[1]}</span>
-              <ArrowRight className="ml-auto hidden h-4 w-4 shrink-0 sm:block" />
-            </Link>
-          ))}
-        </div>
-
-        <div className="lg:hidden"><SapDenHanCard bai={canLam ? { assignment_id: canLam.assignment_id, ma: canLam.ma, tieu_de: canLam.tieu_de, han: tinhTrangThai(canLam, now).hanHieuLuc?.toISOString() ?? null } : null} /></div>
+        <HomNayCanLam ds={viec} />
 
         {/* Buổi học gần đây */}
         <Card>
@@ -128,32 +108,10 @@ export default async function TrangChu() {
           <div className="mt-3"><BuoiSapMo gon ds={(sapMo as BuoiKhoa[] | null) ?? []} /></div>
         </Card>
 
-        {/* Thông tin cá nhân */}
-        <Card>
-          <CardTitle icon={<UserRound className="h-6 w-6 text-xanh-600" />}>Thông tin cá nhân</CardTitle>
-          <div className="grid gap-3 md:grid-cols-[1.3fr_1fr_1fr_1fr]">
-            <div className="flex items-center gap-4 rounded-2xl border border-xanh-100 bg-white p-3">
-              <Avatar name={p.ho_ten} avatar={p.avatar} size={72} />
-              <div className="text-sm"><p className="text-lg font-extrabold">{p.ho_ten}</p><p>Mã học sinh: {p.ma_hs}</p><p>Lớp: {lop.ten_lop}</p></div>
-            </div>
-            {[
-              { I: Star, c: "text-vang-400 fill-vang-400", l: "Điểm trung bình", v: tb === null ? "—" : tb.toFixed(1) },
-              { I: Trophy, c: "text-vang-400", l: "Hoàn thành", v: `${pt.phanTram}%` },
-              { I: Award, c: "text-cam-500", l: "Huy hiệu", v: huyHieu[0]?.ten ?? "Chưa có huy hiệu" },
-            ].map(({ I, c, l, v }) => (
-              <div key={l} className="flex flex-col items-center justify-center rounded-2xl border border-xanh-100 bg-white p-3 text-center">
-                <I className={`h-7 w-7 ${c}`} /><p className="mt-1 text-sm text-slate-600">{l}</p><p className="text-lg font-extrabold">{v}</p>
-              </div>
-            ))}
-          </div>
-        </Card>
       </>}
       aside={<>
-        <HanhTrinhCard {...ht} />
-        <div className="hidden lg:block"><SapDenHanCard bai={canLam ? { assignment_id: canLam.assignment_id, ma: canLam.ma, tieu_de: canLam.tieu_de, han: tinhTrangThai(canLam, now).hanHieuLuc?.toISOString() ?? null } : null} /></div>
+        <HanhTrinhCard {...so} diemTb={tb === null ? null : tb.toFixed(1)} huyHieu={huyHieu.length} />
         <ThongBaoCard ds={(tbs as TB[]) ?? []} />
-        <LopCuaBanCard ten={lop.ten_lop} siSo={(banCungLop as unknown[] | null)?.length ?? 0} />
-        <BrandCard />
       </>}
     />
   );

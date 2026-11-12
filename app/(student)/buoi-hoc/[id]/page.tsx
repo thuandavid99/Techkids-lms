@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FileText, ArrowRight, Download, CupSoda, Sparkles } from "lucide-react";
@@ -68,13 +67,12 @@ export default async function Page({ params, searchParams }: { params: Promise<{
 
           <div className="pt-5">
             {tab === "kien-thuc" && (
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
-                <div className="min-w-0">
+              <div>
+                <div className="min-w-0 max-w-4xl">
                   {b.noi_dung_kien_thuc ? <Markdown>{b.noi_dung_kien_thuc}</Markdown>
                     : <p className="text-slate-500">Thầy chưa soạn phần kiến thức cho buổi này. Em xem tab Tài liệu nhé.</p>}
                   {bai.length > 0 && <ButtonLink href={`${base}?tab=bai-tap`} className="mt-6">Làm bài tập ngay <ArrowRight className="h-4 w-4" /></ButtonLink>}
                 </div>
-                <Image src={IMG.laptop} alt="" width={260} height={240} className="hidden h-auto w-full self-start lg:block" />
               </div>
             )}
 

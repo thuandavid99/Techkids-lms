@@ -28,7 +28,7 @@ export interface TopicRow { id: string; module_id: string; ten: string; thu_tu: 
 export interface BuoiHieuLuc {
   class_id: string; lesson_id: string; override_id: string | null; curriculum_id: string;
   module_id: string | null; topic_id: string | null; thu_tu: string; nhan_buoi: string; tieu_de: string;
-  tom_tat: string | null; loai_id: string | null; noi_dung_kien_thuc: string | null; rieng_lop: boolean;
+  tom_tat: string | null; loai_id: string | null; noi_dung_kien_thuc: string | null; rieng_lop: boolean; mo_rieng?: boolean;
   ban_nhap: boolean; ngay_hoc: string | null; hien_thi: boolean; ngay_mo: string | null; da_day: boolean;
   ghi_chu: string | null; da_mo: boolean;
 }

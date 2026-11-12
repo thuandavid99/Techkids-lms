@@ -144,3 +144,50 @@ export function dienMauTin(mau: string, bien: { ten_hs: string; lop: string; muc
     .replaceAll("{danh_sach_bai}", ds || "(không có)")
     .replaceAll("{han_nop}", hanSom ? fmtDate(hanSom) : "sớm nhất có thể");
 }
+
+// ---------- SỐ LIỆU THỐNG NHẤT BÊN HỌC SINH ----------
+// Mọi trang học sinh hiển thị CÙNG hai con số: "Buổi học x/y" và "Bài tập a/b" (không dùng % riêng lẻ).
+export function soLieuHs(buoi: BuoiTho[], rows: DongBai[], now = new Date()) {
+  const b = hanhTrinh(buoi, rows, now);
+  const t = phanTramHoanThanh(rows, now);
+  return { buoi: { xong: b.xong, tong: b.tong }, bai: { xong: t.daNop, tong: t.tong } };
+}
+
+export type KieuViec = "hoc_hom_nay" | "nop_lai" | "qua_han" | "sap_han";
+export interface ViecCanLam { kieu: KieuViec; tieuDe: string; href: string; han: Date | null }
+
+/**
+ * "Hôm nay em cần làm": buổi học hôm nay, bài cần nộp lại, bài quá hạn (bắt buộc, chưa nộp),
+ * bài còn hạn trong 3 ngày tới. Thứ tự ưu tiên như trên; tối đa `toiDa` mục.
+ */
+export function viecCanLam(
+  buoi: (BuoiTho & { tieu_de?: string; ten?: string })[],
+  rows: (DongBai & { loai_nop?: string })[],
+  now = new Date(),
+  toiDa = 5,
+): ViecCanLam[] {
+  const homNay = vnDateKey(now);
+  const out: ViecCanLam[] = [];
+  for (const b of buoi) {
+    if (b.da_mo && b.ngay_hoc === homNay) out.push({ kieu: "hoc_hom_nay", tieuDe: b.ten ?? b.tieu_de ?? "Buổi học hôm nay", href: `/buoi-hoc/${b.lesson_id}`, han: null });
+  }
+  const nhom: Record<Exclude<KieuViec, "hoc_hom_nay">, ViecCanLam[]> = { nop_lai: [], qua_han: [], sap_han: [] };
+  for (const r of rows) {
+    if (r.mien_nop || r.loai_nop === "ngoai_he_thong" || r.da_mo === false) continue;
+    const k = tinhTrangThai(r, now);
+    const ten = r.ma ? `${r.ma}. ${r.tieu_de}` : r.tieu_de;
+    const href = `/bai-tap/${r.assignment_id}/lam-bai`;
+    if (k.trangThai === "can_nop_lai") nhom.nop_lai.push({ kieu: "nop_lai", tieuDe: ten, href, han: toDateHan(r.han_nop_lai) ?? k.hanHieuLuc });
+    else if (k.quaHanChuaNop && r.bat_buoc) nhom.qua_han.push({ kieu: "qua_han", tieuDe: ten, href, han: k.hanHieuLuc });
+    else if (k.chuaDenHan && k.hanHieuLuc && k.hanHieuLuc.getTime() - now.getTime() <= 3 * 864e5) nhom.sap_han.push({ kieu: "sap_han", tieuDe: ten, href, han: k.hanHieuLuc });
+  }
+  const theoHan = (a: ViecCanLam, b: ViecCanLam) => (a.han?.getTime() ?? Infinity) - (b.han?.getTime() ?? Infinity);
+  out.push(...nhom.nop_lai.sort(theoHan), ...nhom.qua_han.sort(theoHan), ...nhom.sap_han.sort(theoHan));
+  return out.slice(0, toiDa);
+}
+
+function toDateHan(s: string | null | undefined): Date | null {
+  if (!s) return null;
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}

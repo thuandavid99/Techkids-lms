@@ -1,9 +1,9 @@
 import { FileSpreadsheet, KeyRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { lopDangChon } from "@/lib/server/lop";
+import { SubNavLop } from "@/components/teacher/SubNavLop";
 import { duLieuLop } from "@/lib/server/gv";
-import { IMG } from "@/lib/brand";
-import { Card, PageGrid, RobotCard, CardTitle } from "@/components/ui/Card";
+import { Card, PageGrid, CardTitle } from "@/components/ui/Card";
 import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/States";
 import { QuanLyHocSinh } from "@/components/teacher/QuanLyHocSinh";
@@ -23,6 +23,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ l
   ]);
   const xin = new Set((yc ?? []).map((x) => x.student_id));
   return (
+    <>
+    <SubNavLop id={lop.id} />
     <PageGrid
       main={<QuanLyHocSinh classId={lop.id} tenLop={lop.ten_lop} lops={lops} ds={(hs ?? []).map((h) => ({
         id: h.id, ma_hs: h.ma_hs, ho_ten: h.ho_ten, dang_hoc: h.dang_hoc, chuaDoiMk: h.must_change_password, xinReset: xin.has(h.id),
@@ -43,8 +45,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ l
             <ButtonLink href="/gv/hoc-sinh/yeu-cau-mat-khau" size="sm" className="mt-3">Xem và reset</ButtonLink>
           </Card>
         )}
-        <RobotCard img={IMG.clipboard} title="Quản lý lớp học dễ dàng!" />
       </>}
     />
+    </>
   );
 }

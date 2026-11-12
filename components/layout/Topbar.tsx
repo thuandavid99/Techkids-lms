@@ -5,7 +5,7 @@ import { Bell, ChevronDown, GraduationCap, LogOut, UserRound, HelpCircle, Settin
 import { Avatar } from "@/components/ui/Misc";
 import { dangXuat } from "@/lib/actions/auth";
 import { chonLop } from "@/lib/actions/common";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
 export function ClassPill({ ten, href }: { ten: string; href?: string }) {
   const inner = (<><GraduationCap className="h-5 w-5 shrink-0 text-navy-800" /> <span className="truncate font-semibold">Lớp {ten}</span>{href && <ChevronDown className="hidden h-4 w-4 shrink-0 sm:block" />}</>);
@@ -18,13 +18,27 @@ export function ClassPill({ ten, href }: { ten: string; href?: string }) {
 export function ClassSelect({ lops, current }: { lops: { id: string; ten_lop: string }[]; current: string | null }) {
   const [pending, start] = useTransition();
   const router = useRouter();
+  const path = usePathname();
+  const sp = useSearchParams();
   if (lops.length === 0) return <ClassPill ten="(chưa có lớp)" />;
+  // Đang xem trang của một lớp cụ thể (/gv/lop/<id> hoặc ?lop=<id>) → ô chọn hiện đúng lớp đó
+  const tuUrl = path.match(/^\/gv\/lop\/([0-9a-f-]{36})/i)?.[1] ?? sp.get("lop");
+  const dangChon = lops.some((l) => l.id === tuUrl) ? tuUrl : current;
   return (
     <label className="card inline-flex h-11 min-w-0 max-w-full items-center gap-2 rounded-2xl px-3 text-[0.95rem]">
       <GraduationCap className="h-5 w-5 shrink-0 text-navy-800" />
       <span className="sr-only">Chọn lớp</span>
-      <select className="min-w-0 max-w-full cursor-pointer truncate bg-transparent font-semibold outline-none sm:max-w-[18rem]" value={current ?? ""} disabled={pending}
-        onChange={(e) => start(async () => { await chonLop(e.target.value); router.refresh(); })}>
+      <select className="min-w-0 max-w-full cursor-pointer truncate bg-transparent font-semibold outline-none sm:max-w-[18rem]" value={dangChon ?? ""} disabled={pending}
+        onChange={(e) => start(async () => {
+          const moi = e.target.value;
+          await chonLop(moi);
+          // Ô chọn lớp trên cùng là DUY NHẤT: trang đang mở tự chuyển sang lớp mới (kể cả link có ?lop= hoặc /gv/lop/<id>)
+          const u = new URL(window.location.href);
+          const m = u.pathname.match(/^\/gv\/lop\/[0-9a-f-]{36}(\/.*)?$/i);
+          if (m) { router.push(`/gv/lop/${moi}${m[1] ?? ""}`); return; }
+          if (u.searchParams.has("lop")) { u.searchParams.set("lop", moi); router.push(u.pathname + "?" + u.searchParams.toString()); return; }
+          router.refresh();
+        })}>
         {lops.map((l) => <option key={l.id} value={l.id}>Lớp {l.ten_lop}</option>)}
       </select>
     </label>
@@ -50,7 +64,7 @@ export function UserMenu({ name, avatar, laGv, vaiTro }: { name: string; avatar:
   }, []);
   const items = laGv
     ? [{ href: "/gv/cai-dat", label: "Cài đặt", I: Settings }, { href: "/gv/thong-bao", label: "Thông báo", I: Bell }, { href: "/gv/huong-dan", label: "Hướng dẫn", I: HelpCircle }]
-    : [{ href: "/ho-so", label: "Hồ sơ cá nhân", I: UserRound }, { href: "/huong-dan", label: "Hướng dẫn", I: HelpCircle }, { href: "/cai-dat", label: "Cài đặt", I: Settings }];
+    : [{ href: "/cai-dat", label: "Tài khoản của em", I: UserRound }, { href: "/huong-dan", label: "Hướng dẫn", I: HelpCircle }];
   return (
     <div ref={ref} className="relative">
       <button onClick={() => setOpen((x) => !x)} aria-expanded={open} aria-haspopup="menu" className="card inline-flex h-11 items-center gap-2 rounded-2xl pl-1.5 pr-3">

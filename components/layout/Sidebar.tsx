@@ -3,15 +3,19 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Home, BookMarked, FolderOpen, ClipboardList, BarChart3, Settings, Users, UserRound, BookOpen, Menu, X, UserCog } from "lucide-react";
+import { Home, BookMarked, FolderOpen, ClipboardList, BarChart3, Settings, Users, UserRound, BookOpen, Menu, X, UserCog, Inbox } from "lucide-react";
 import { BRAND, IMG } from "@/lib/brand";
 
-const ICON = { home: Home, buoi: BookMarked, kho: FolderOpen, bai: ClipboardList, kq: BarChart3, caidat: Settings, lop: Users, hs: UserRound, ct: BookOpen, gv: UserCog };
+const ICON = { home: Home, buoi: BookMarked, kho: FolderOpen, bai: ClipboardList, kq: BarChart3, caidat: Settings, lop: Users, hs: UserRound, ct: BookOpen, gv: UserCog, thu: Inbox };
 export type IconKey = keyof typeof ICON;
-export interface NavItem { href: string; label: string; icon: IconKey; exact?: boolean }
+export interface NavItem { href: string; label: string; icon: IconKey; exact?: boolean; match?: string[] }
 
-function laDangChon(path: string, it: NavItem) {
-  return it.exact ? path === it.href : path === it.href || path.startsWith(it.href + "/");
+/** Độ khớp của một mục menu với trang hiện tại (0 = không khớp). Mục khớp DÀI nhất được tô sáng. */
+function doKhop(path: string, it: NavItem): number {
+  if (it.exact) return path === it.href ? it.href.length : 0;
+  let tot = 0;
+  for (const m of it.match ?? [it.href]) if (path === m || path.startsWith(m + "/")) tot = Math.max(tot, m.length);
+  return tot;
 }
 
 function Logo({ nhan }: { nhan?: string }) {
@@ -34,7 +38,8 @@ function Menu_({ items, onNav }: { items: NavItem[]; onNav?: () => void }) {
     <nav aria-label="Menu chính" className="mt-2 flex flex-col gap-1.5 px-3">
       {items.map((it) => {
         const I = ICON[it.icon];
-        const on = laDangChon(path, it);
+        const diem = doKhop(path, it);
+        const on = diem > 0 && diem === Math.max(...items.map((x) => doKhop(path, x)));
         return (
           <Link key={it.href} href={it.href} onClick={onNav} aria-current={on ? "page" : undefined}
             className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[0.95rem] font-medium transition-colors ${on ? "bg-[var(--cam-nut)] text-white shadow-md" : "text-blue-50 hover:bg-white/10"}`}>
@@ -93,7 +98,8 @@ export function BottomNav({ items }: { items: NavItem[] }) {
     <nav aria-label="Điều hướng nhanh" className="no-print fixed inset-x-0 bottom-0 z-40 flex border-t border-vien bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
       {items.map((it) => {
         const I = ICON[it.icon];
-        const on = laDangChon(path, it);
+        const diem = doKhop(path, it);
+        const on = diem > 0 && diem === Math.max(...items.map((x) => doKhop(path, x)));
         return (
           <Link key={it.href} href={it.href} aria-current={on ? "page" : undefined}
             className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[0.7rem] font-semibold ${on ? "text-cam-500" : "text-slate-500"}`}>

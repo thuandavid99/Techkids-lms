@@ -1,12 +1,12 @@
 import { requireStudent } from "@/lib/auth";
 import { duLieuHs } from "@/lib/server/hs";
 import { topicsCua } from "@/lib/server/data";
-import { Card, PageGrid, BrandCard } from "@/components/ui/Card";
+import { Card, PageGrid } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/States";
 import { HanhTrinhCard, SapDenHanCard } from "@/components/student/Cards";
 import { BuoiHocList, type ModuleItem } from "@/components/student/BuoiHocList";
 import { BuoiSapMo, type BuoiKhoa } from "@/components/student/BuoiSapMo";
-import { hanhTrinh } from "@/lib/domain/stats";
+import { soLieuHs } from "@/lib/domain/stats";
 import { trangThaiBuoi, baiCanLamGanNhat } from "@/lib/domain/lesson-status";
 import { tinhTrangThai } from "@/lib/domain/status";
 import { tenBuoi } from "@/lib/domain/naming";
@@ -44,9 +44,8 @@ export default async function Page() {
         <BuoiSapMo ds={(sapMo as BuoiKhoa[] | null) ?? []} />
       </>}
       aside={<>
-        <HanhTrinhCard {...hanhTrinh(buoi, dong, now)} />
+        <HanhTrinhCard {...soLieuHs(buoi, dong, now)} />
         <SapDenHanCard bai={canLam ? { assignment_id: canLam.assignment_id, ma: canLam.ma, tieu_de: canLam.tieu_de, han: tinhTrangThai(canLam, now).hanHieuLuc?.toISOString() ?? null } : null} />
-        <BrandCard />
       </>}
     />
   );
