@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { assertStudent } from "@/lib/auth";
 import { DUOI_CHO_PHEP, GIOI_HAN_MB, layDuoi, laVanBanUtf8 } from "@/lib/domain/files";
 import { capLinkTaiLen, tenLuuAnToan, xacMinhFile, xoaFile } from "@/lib/server/storage";
+import { coNoiDung, ghiNop, linkHopLe, type NoiDungNop } from "@/lib/domain/bai-nop";
 import type { KQ } from "@/lib/types";
 
 const UUID = /^[0-9a-f-]{36}$/i;
@@ -33,19 +34,23 @@ export async function luuNhap(assignmentId: string, code: string): Promise<KQ> {
 }
 
 /** Nộp bài dạng code (soạn trực tiếp hoặc file .py/.txt đã đọc thành chữ). Giờ nộp do DATABASE ghi. */
-export async function nopBaiCode(assignmentId: string, code: string, tenGoc?: string): Promise<KQ> {
+export async function nopBaiCode(assignmentId: string, noiDung: string | NoiDungNop, tenGoc?: string): Promise<KQ> {
   try {
     const { p, a } = await baiCuaEm(assignmentId);
-    if (a.loai_nop === "file" && !tenGoc) return loi("Bài này cần nộp file.");
+    // noiDung: code thuần (bài 1 ô / file .py) hoặc { tabs, link } (bài nhiều tab / nộp bằng link)
+    const nd: NoiDungNop = typeof noiDung === "string" ? { tabs: [noiDung], link: null } : { tabs: (noiDung.tabs ?? []).slice(0, 50).map(String), link: noiDung.link ? String(noiDung.link).trim() : null };
+    if (nd.link && !linkHopLe(nd.link)) return loi("Đường link chưa đúng (cần bắt đầu bằng https://).");
+    if (a.loai_nop === "file" && !tenGoc && !nd.link) return loi("Bài này cần nộp file hoặc dán link bài làm.");
     if (tenGoc && !DUOI_CHO_PHEP.code.includes(layDuoi(tenGoc))) return loi("Chỉ nhận file .py hoặc .txt.");
+    if (!coNoiDung(nd)) return loi("Em chưa viết code nào.");
+    const code = ghiNop(nd);
     const bytes = new TextEncoder().encode(code);
-    if (!code.trim()) return loi("Em chưa viết code nào.");
     if (bytes.length > GIOI_HAN_MB.code * 1024 * 1024) return loi(`Code quá dài (tối đa ${GIOI_HAN_MB.code} MB).`);
     if (!laVanBanUtf8(bytes)) return loi("Nội dung không phải văn bản hợp lệ.");
     const admin = createAdminClient();
     const { data, error } = await admin.rpc("hs_nop_bai", {
       p_student: p.id, p_assignment: assignmentId, p_code: code, p_file_path: null,
-      p_ten_goc: tenGoc ?? null, p_kich_thuoc: bytes.length, p_mime: "text/x-python", p_nguoi_nop: "hs",
+      p_ten_goc: tenGoc ?? null, p_kich_thuoc: bytes.length, p_mime: nd.link && !nd.tabs.some((t) => t.trim()) ? "text/uri-list" : "text/x-python", p_nguoi_nop: "hs",
     });
     if (error) return loi("Chưa nộp được. Kiểm tra mạng rồi thử lại.");
     const kq = data as { ok: boolean; loi?: string; nop_luc?: string; file_cu?: string };

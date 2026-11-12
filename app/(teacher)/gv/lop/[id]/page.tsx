@@ -53,9 +53,9 @@ export default async function Page({ params, searchParams }: { params: Promise<{
     <PageGrid
       main={<>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="h-page">Ma trận tiến độ học tập - Lớp {lop?.ten_lop}</h1>
-          <form className="flex gap-2" action={`/gv/lop/${id}`}>
-            <select name="module" defaultValue={locModule} aria-label="Lọc bài học" className="input !w-auto !rounded-2xl">
+          <h1 className="h-page min-w-0">Ma trận tiến độ học tập - Lớp {lop?.ten_lop}</h1>
+          <form className="flex w-full min-w-0 gap-2 sm:w-auto" action={`/gv/lop/${id}`}>
+            <select name="module" defaultValue={locModule} aria-label="Lọc bài học" className="input min-w-0 flex-1 !rounded-2xl sm:!w-auto sm:max-w-[22rem] sm:flex-none">
               <option value="">Bài học: Tất cả</option>
               {modules.map((m) => <option key={m.id} value={m.id}>{m.ten}</option>)}
             </select>

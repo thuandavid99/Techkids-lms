@@ -34,6 +34,17 @@ function linkCuaO(cell: ExcelJS.Cell): string | null {
   return null;
 }
 
+/** Mã màu nền của ô (ARGB hoặc "theme:N"), null nếu không tô / tô trắng */
+function mauNen(cell: ExcelJS.Cell): string | null {
+  const f = cell.fill as ExcelJS.FillPattern | undefined;
+  if (!f || f.type !== "pattern" || f.pattern !== "solid") return null;
+  const c = f.fgColor as { argb?: string; theme?: number; tint?: number } | undefined;
+  if (!c) return null;
+  if (c.argb) return /^(FF|00)?FFFFFF$/i.test(c.argb) ? null : c.argb.toUpperCase();
+  if (c.theme !== undefined && c.theme !== 0 && c.theme !== 1) return `theme:${c.theme}:${c.tint ?? 0}`;
+  return null;
+}
+
 function toMau(cell: ExcelJS.Cell): boolean {
   const f = cell.fill as ExcelJS.FillPattern | undefined;
   if (!f || f.type !== "pattern" || f.pattern !== "solid") return false;
@@ -54,13 +65,15 @@ export async function docXlsx(buf: ArrayBuffer): Promise<TrangTinh[]> {
       if (rows.length >= MAX_DONG) return;
       const o: string[] = [], link: (string | null)[] = [];
       let mau = false;
+      const maus = new Set<string>();
       for (let c = 1; c <= soCot; c++) {
         const cell = row.getCell(c);
-        o.push(chuCuaO(cell));
+        const chu = chuCuaO(cell);
+        o.push(chu);
         link.push(linkCuaO(cell));
-        if (toMau(cell) && chuCuaO(cell)) mau = true;
+        if (chu && toMau(cell)) { mau = true; const m = mauNen(cell); if (m) maus.add(m); }
       }
-      rows.push({ dong: r, o, link, toMau: mau });
+      rows.push({ dong: r, o, link, toMau: mau, mau: [...maus] });
     });
     return { ten: ws.name, rows };
   });

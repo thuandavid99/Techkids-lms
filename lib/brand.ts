@@ -1,7 +1,7 @@
 // =====================================================================
 // THƯƠNG HIỆU — đổi tên/slogan/hình ở MỘT chỗ này.
-// Hình minh họa nằm trong public/images (đã cắt từ bộ mockup). Muốn thay:
-// chép file mới đè lên cùng tên (ví dụ public/images/mascot-hero.png).
+// Hình minh họa nằm trong public/images (WebP nền trong suốt). Muốn thay:
+// chép file mới (.webp/.png nền trong suốt) vào đó rồi sửa đường dẫn trong IMG bên dưới.
 // =====================================================================
 export const BRAND = {
   ten: "TechKids Academy",
@@ -17,22 +17,23 @@ export const BRAND = {
 } as const;
 
 export const IMG = {
-  logo: "/images/logo-circle.png",
-  logoRobot: "/images/logo-robot.png",
-  sidebarRocket: "/images/mascot-sidebar.png",
-  hero: "/images/mascot-hero.png",
-  login: "/images/login-illustration.png",
-  school: "/images/school-illustration.png",
-  avatar: "/images/default-avatar.png",
-  celebrate: "/images/robot-celebrate.png",
-  tablet: "/images/robot-tablet.png",
-  clipboard: "/images/robot-clipboard.png",
-  clipboardGv: "/images/robot-clipboard-gv.png", // bản đã tách nền, dùng trên nền tối (trang /giao-vien)
-  cheer: "/images/robot-cheer.png",
-  books: "/images/robot-books.png",
-  check: "/images/robot-check.png",
-  trophy: "/images/robot-trophy.png",
-  shield: "/images/robot-shield.png",
-  laptop: "/images/robot-laptop.png",
-  laptopSmall: "/images/robot-laptop-small.png",
+  // Đã tách nền (trong suốt), làm mềm mép, nén WebP (12/11/2026) — nhẹ hơn ~9 lần so với PNG cũ
+  logo: "/images/logo-circle.webp",          // logo tròn, dùng được trên nền tối (menu) và nền sáng
+  logoRobot: "/images/logo-circle.webp",
+  sidebarRocket: "/images/mascot-sidebar.webp",
+  hero: "/images/mascot-hero.webp",
+  login: "/images/login-illustration.webp",
+  school: "/images/school.svg",              // vẽ lại bằng SVG (ảnh cũ quá nhỏ, bị cắt)
+  avatar: "/images/default-avatar.webp",
+  celebrate: "/images/robot-celebrate.webp",
+  tablet: "/images/robot-tablet.webp",
+  clipboard: "/images/robot-clipboard.webp",
+  clipboardGv: "/images/robot-clipboard-gv.webp", // dùng trên nền tối (trang /giao-vien)
+  cheer: "/images/robot-cheer.webp",
+  books: "/images/robot-books.webp",
+  check: "/images/robot-clipboard.webp",     // ảnh "robot cầm bảng" cũ bị cắt mất bảng → dùng robot cầm bảng kẹp
+  trophy: "/images/robot-trophy.webp",
+  shield: "/images/robot-shield.webp",
+  laptop: "/images/robot-laptop.webp",
+  laptopSmall: "/images/robot-laptop-small.webp",
 } as const;

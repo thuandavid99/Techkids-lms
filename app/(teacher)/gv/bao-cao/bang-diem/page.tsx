@@ -31,7 +31,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ l
         <div className="table-wrap rounded-2xl border border-vien bg-white">
           <table className="tbl text-sm">
             <thead><tr><th className="sticky left-0 bg-white">Mã HS</th><th className="sticky left-16 bg-white">Họ tên</th>
-              {bd.cot.map((c) => <th key={c.assignment_id} title={c.tieu_de} className="text-center">{c.ma}{c.he_so !== 1 && <span className="block text-[0.65rem] text-slate-500">hệ số {c.he_so}</span>}</th>)}
+              {bd.cot.map((c) => <th key={c.assignment_id} title={c.tieu_de} className="text-center">{c.ma}{c.he_so !== 1 && <span className="block text-[0.7rem] text-slate-500">hệ số {c.he_so}</span>}</th>)}
               {bd.modules.map((m) => <th key={m.id} className="bg-xanh-50 text-center">TB {m.ten.replace(/:.*/, "")}</th>)}
               <th className="bg-cam-50 text-center">TB HK{hk}</th></tr></thead>
             <tbody>{bd.hs.map((h) => (

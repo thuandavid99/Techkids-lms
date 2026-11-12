@@ -21,7 +21,7 @@ export function GhiChu({ studentId, ds }: { studentId: string; ds: { id: string;
       <ul className="mt-3 space-y-2">
         {ds.map((g) => (
           <li key={g.id} className="rounded-xl bg-amber-50 px-3 py-2 text-sm">
-            <p className="whitespace-pre-line">{g.noi_dung}</p>
+            <p className="chu-dai whitespace-pre-line">{g.noi_dung}</p>
             <p className="mt-1 flex justify-between text-xs text-slate-500">{fmtDateTime(g.tao_luc)}
               <button className="text-do-600 hover:underline" onClick={() => start(async () => { await xoaGhiChu(g.id); router.refresh(); })}>Xóa</button></p>
           </li>

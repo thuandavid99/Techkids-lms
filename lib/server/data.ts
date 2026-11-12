@@ -103,3 +103,14 @@ export function demTheo<T>(arr: T[], key: (x: T) => string): Map<string, number>
   for (const x of arr) m.set(key(x), (m.get(key(x)) ?? 0) + 1);
   return m;
 }
+
+/** Số bài nhỏ (tab) của một bài tập — ưu tiên bản riêng của lớp nếu có */
+export async function soBaiCua(sb: SB, assignmentId: string, overrideId?: string | null, classId?: string | null): Promise<number> {
+  // Bản riêng lớp (nếu có) nằm ở dòng ghi_de_cua = bài gốc
+  const { data } = await sb.from("assignments").select("id, so_bai, ghi_de_cua, class_id")
+    .or(`id.eq.${assignmentId},ghi_de_cua.eq.${assignmentId}`).is("deleted_at", null);
+  const ds = (data as { id: string; so_bai: number | null; ghi_de_cua: string | null; class_id: string | null }[] | null) ?? [];
+  const rieng = ds.find((x) => x.id === overrideId) ?? (classId ? ds.find((x) => x.ghi_de_cua === assignmentId && x.class_id === classId) : undefined);
+  const v = rieng?.so_bai ?? ds.find((x) => x.id === assignmentId)?.so_bai;
+  return Math.max(1, Math.min(50, Number(v ?? 1) || 1));
+}

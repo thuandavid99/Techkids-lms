@@ -1,7 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { FileText, ArrowRight, Download, CupSoda } from "lucide-react";
+import { FileText, ArrowRight, Download, CupSoda, Sparkles } from "lucide-react";
+import { laLinkQuiz } from "@/lib/domain/files";
 import { requireStudent } from "@/lib/auth";
 import { duLieuHs } from "@/lib/server/hs";
 import { IMG } from "@/lib/brand";
@@ -36,6 +37,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   ]);
   const taiLieu = ((mats as TaiLieu[]) ?? []).sort((x, y) => cmpKey(x.thu_tu, y.thu_tu));
   const tenLoaiTL = new Map(((cats as { id: string; ten: string }[]) ?? []).map((c) => [c.id, c.ten]));
+  const quiz = taiLieu.filter((m) => m.nguon === "link" && laLinkQuiz(m.url, m.loai ? tenLoaiTL.get(m.loai) : null));
   const bai = dong.filter((r) => r.lesson_id === b.lesson_id);
   const l = b.loai_id ? loai.get(b.loai_id) : undefined;
   const baiDau = bai.find((r) => !tinhTrangThai(r, now).daNop && r.loai_nop !== "ngoai_he_thong") ?? bai[0];
@@ -46,8 +48,18 @@ export default async function Page({ params, searchParams }: { params: Promise<{
       main={
         <Card>
           <PageHeader back={{ href: "/buoi-hoc", label: "Quay lại danh sách" }} title={
-            <span className="flex items-center gap-4"><LessonIcon icon={l?.icon ?? "code"} mau={l?.mau ?? "blue"} size={72} /><span>{tenBuoi(b.nhan_buoi, b.tieu_de)}</span></span>
+            <span className="flex items-start gap-3 sm:items-center sm:gap-4"><LessonIcon icon={l?.icon ?? "code"} mau={l?.mau ?? "blue"} size={72} className="!h-11 !w-11 !rounded-xl sm:!h-[72px] sm:!w-[72px] sm:!rounded-2xl" /><span className="min-w-0">{tenBuoi(b.nhan_buoi, b.tieu_de)}</span></span>
           } sub={b.tom_tat} />
+          {quiz.length > 0 && (
+            <div className="-mt-2 mb-4 flex flex-wrap gap-2">
+              {quiz.map((m, i) => (
+                <a key={m.id} href={`/api/tai-ve?loai=tai-lieu&id=${m.id}`} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full bg-tim-500 px-5 py-2.5 font-bold text-white shadow-sm hover:brightness-110">
+                  <Sparkles className="h-5 w-5" /> {quiz.length > 1 ? `Làm Quiz ${i + 1}` : "Làm Quiz"}
+                </a>
+              ))}
+            </div>
+          )}
           <LinkTabs active={tab} tabs={[
             { key: "kien-thuc", label: "Kiến thức", href: `${base}?tab=kien-thuc` },
             { key: "tai-lieu", label: `Tài liệu${taiLieu.length ? ` (${taiLieu.length})` : ""}`, href: `${base}?tab=tai-lieu` },
@@ -56,8 +68,8 @@ export default async function Page({ params, searchParams }: { params: Promise<{
 
           <div className="pt-5">
             {tab === "kien-thuc" && (
-              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
-                <div>
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
+                <div className="min-w-0">
                   {b.noi_dung_kien_thuc ? <Markdown>{b.noi_dung_kien_thuc}</Markdown>
                     : <p className="text-slate-500">Thầy chưa soạn phần kiến thức cho buổi này. Em xem tab Tài liệu nhé.</p>}
                   {bai.length > 0 && <ButtonLink href={`${base}?tab=bai-tap`} className="mt-6">Làm bài tập ngay <ArrowRight className="h-4 w-4" /></ButtonLink>}
@@ -108,8 +120,8 @@ export default async function Page({ params, searchParams }: { params: Promise<{
               {taiLieu.slice(0, 4).map((m) => (
                 <li key={m.id}>
                   <a href={`/api/tai-ve?loai=tai-lieu&id=${m.id}${m.cho_phep_tai || m.nguon === "link" ? "" : "&xem=1"}`} target={m.nguon === "link" ? "_blank" : undefined} rel="noopener noreferrer" className="flex items-center gap-3 py-3 hover:text-xanh-600">
-                    <span className="rounded-xl bg-xanh-50 p-2.5 text-xanh-600"><Download className="h-5 w-5" /></span>
-                    <span><span className="block font-medium">{m.loai ? tenLoaiTL.get(m.loai) ?? m.tieu_de : m.tieu_de}</span><span className="block text-sm text-xanh-600">{m.ten_goc ?? m.tieu_de}</span></span>
+                    <span className="shrink-0 rounded-xl bg-xanh-50 p-2.5 text-xanh-600"><Download className="h-5 w-5" /></span>
+                    <span className="min-w-0 chu-dai"><span className="block font-medium">{m.loai ? tenLoaiTL.get(m.loai) ?? m.tieu_de : m.tieu_de}</span><span className="block text-sm text-xanh-600">{m.ten_goc ?? m.tieu_de}</span></span>
                   </a>
                 </li>
               ))}

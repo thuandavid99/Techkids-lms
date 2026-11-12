@@ -27,9 +27,9 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   return (
     <Card>
       <p className="mb-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-700">👀 Bản xem thử — giao diện học sinh {rieng ? "(bản riêng của lớp)" : "(nội dung chung)"}{l.ban_nhap ? " · đang là bản nháp, học sinh CHƯA thấy" : ""}</p>
-      <PageHeader title={<span className="flex items-center gap-4"><LessonIcon icon={lt?.icon} mau={lt?.mau} size={64} />{tenBuoi(l.nhan_buoi, l.tieu_de)}</span>} sub={l.tom_tat} />
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_240px]">
-        <div>
+      <PageHeader title={<span className="flex items-start gap-3 sm:items-center sm:gap-4"><LessonIcon icon={lt?.icon} mau={lt?.mau} size={64} className="!h-11 !w-11 !rounded-xl sm:!h-16 sm:!w-16 sm:!rounded-2xl" /><span className="min-w-0">{tenBuoi(l.nhan_buoi, l.tieu_de)}</span></span>} sub={l.tom_tat} />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_240px]">
+        <div className="min-w-0">
           {l.noi_dung_kien_thuc ? <Markdown>{l.noi_dung_kien_thuc}</Markdown> : <p className="text-slate-500">(Chưa có phần kiến thức)</p>}
           <h2 className="mt-6 font-extrabold">Tài liệu</h2>
           <ul className="mt-1 list-disc pl-5">{(mats ?? []).map((m) => <li key={m.id}>{m.tieu_de} {m.nguon === "link" && <Pill mau="blue">link</Pill>}</li>)}{!mats?.length && <li className="text-slate-500">Không có</li>}</ul>

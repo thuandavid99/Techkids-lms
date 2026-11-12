@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Trophy, Paperclip } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
 import { duLieuHs } from "@/lib/server/hs";
+import { soBaiCua } from "@/lib/server/data";
 import { PageHeader } from "@/components/ui/Card";
 import { Markdown } from "@/components/ui/Markdown";
 import { LamBai } from "@/components/student/LamBai";
@@ -24,10 +25,13 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const [{ data: a }, { data: draft }, { data: sub }] = await Promise.all([
     sb.from("v_bai_tap_hieu_luc").select("*").eq("assignment_id", id).eq("class_id", p.class_id!).maybeSingle(),
     sb.from("drafts").select("code_text, saved_at").eq("assignment_id", id).eq("student_id", p.id).maybeSingle(),
-    sb.from("submissions").select("code_text, ten_goc").eq("assignment_id", id).eq("student_id", p.id).maybeSingle(),
+    sb.from("submissions").select("code_text, ten_goc, cham_tabs").eq("assignment_id", id).eq("student_id", p.id).maybeSingle(),
   ]);
   if (!a) notFound();
-  const { data: files } = await sb.from("assignment_files").select("id, ten_goc, kich_thuoc").in("assignment_id", [id, a.override_id].filter(Boolean));
+  const [{ data: files }, soBai] = await Promise.all([
+    sb.from("assignment_files").select("id, ten_goc, kich_thuoc").in("assignment_id", [id, a.override_id].filter(Boolean)),
+    soBaiCua(sb, id, a.override_id, p.class_id),
+  ]);
 
   if (a.loai_nop === "ngoai_he_thong") {
     return (
@@ -61,6 +65,8 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       diem={r.diem !== null ? `${Number(r.diem).toFixed(1)} / ${r.diem_toi_da}` : null}
       khoa={khoa}
       code0={draft?.code_text ?? sub?.code_text ?? ""}
+      soBai={soBai}
+      chamTabs={sub?.cham_tabs ?? null}
       nhapLuc={draft?.saved_at ?? null}
       co={{ checked: r.chua_lam_duoc, note: r.ghi_chu_co, disabled: kq.trangThai === "da_cham" || r.mien_nop }}
     >

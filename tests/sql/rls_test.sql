@@ -1,7 +1,7 @@
 -- =====================================================================
 -- tests/sql/rls_test.sql — KIỂM THỬ PHÂN QUYỀN + NỘP/CHẤM BÀI (dành cho lập trình viên)
 -- KHÔNG chạy trên Supabase thật (file tạo người dùng giả trong auth.users).
--- Chạy trên Postgres thử nghiệm sau 00_supabase_stub + 001..005 + seed.
+-- Chạy trên Postgres thử nghiệm sau 00_supabase_stub + 001..006 + seed.
 -- Mỗi kiểm tra in "OK ..." hoặc dừng với lỗi "FAIL ...".
 -- =====================================================================
 \set ON_ERROR_STOP 1
@@ -272,6 +272,51 @@ do $$ begin
   perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000a2', true);
   if exists (select 1 from classes) or exists (select 1 from profiles where vai_tro = 'hoc_sinh') then raise exception 'FAIL 21: GV bị khóa vẫn đọc được'; end if;
   raise notice 'OK 21: GV bị khóa không đọc được dữ liệu; GV thường không làm sạch thùng rác';
+end $$;
+
+-- 22. (006) Học sinh: không đổi được chế độ mở buổi; chỉ thấy TÊN 1–2 buổi sắp mở, không đọc được nội dung
+do $$ declare c uuid; r jsonb; n int; l uuid; begin
+  reset role; select class_id into c from profiles where id = '00000000-0000-0000-0000-0000000000b1';
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000b1', true);
+  r := gv_dat_che_do_mo(c, 'theo_lich');
+  if (r->>'ok')::boolean then raise exception 'FAIL 22a: HS đổi được chế độ mở buổi'; end if;
+  select count(*) into n from hs_buoi_sap_mo(5);
+  if n > 3 then raise exception 'FAIL 22b: lộ quá nhiều buổi sắp mở (%)', n; end if;
+  for l in select lesson_id from hs_buoi_sap_mo(2) loop
+    if exists (select 1 from lessons where id = l) then raise exception 'FAIL 22c: HS đọc được nội dung buổi chưa mở'; end if;
+  end loop;
+  raise notice 'OK 22: HS không đổi chế độ mở; chỉ thấy tên % buổi sắp mở, không đọc được nội dung', n;
+end $$;
+
+-- 23. (006) Quản trị bật "Tự mở theo lịch" → buổi đã tới ngày học tự mở khi học sinh vào web
+do $$ declare c uuid; r jsonb; l uuid; begin
+  reset role; select class_id into c from profiles where id = '00000000-0000-0000-0000-0000000000b1';
+  select lesson_id into l from class_lessons where class_id = c and ngay_hoc is not null order by ngay_hoc limit 1;
+  update class_lessons set hien_thi = false where class_id = c and lesson_id = l;
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000a1', true);
+  r := gv_dat_che_do_mo(c, 'theo_lich');
+  if not (r->>'ok')::boolean then raise exception 'FAIL 23a: quản trị không đổi được chế độ (%)', r; end if;
+  reset role; update class_lessons set hien_thi = false where class_id = c and lesson_id = l;
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000b1', true);
+  perform hs_tao_thong_bao_tu_dong();
+  if not exists (select 1 from lessons where id = l) then raise exception 'FAIL 23b: buổi tới ngày chưa tự mở'; end if;
+  raise notice 'OK 23: chế độ "tự mở theo lịch" mở buổi đã tới ngày học';
+end $$;
+
+-- 24. (006) Giáo viên không phụ trách lớp không đổi được chế độ mở buổi; ai cũng gọi được /api/song
+do $$ declare c uuid; r jsonb; begin
+  reset role; select class_id into c from profiles where id = '00000000-0000-0000-0000-0000000000b1';
+  update profiles set deleted_at = null where id = '00000000-0000-0000-0000-0000000000a2';
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000a2', true);
+  r := gv_dat_che_do_mo(c, 'thu_cong');
+  if (r->>'ok')::boolean then raise exception 'FAIL 24a: GV lớp khác đổi được chế độ mở buổi'; end if;
+  reset role; set local role anon;
+  if song() is null then raise exception 'FAIL 24b'; end if;
+  raise notice 'OK 24: GV lớp khác bị chặn đổi chế độ mở; hàm song() gọi được';
 end $$;
 
 rollback;

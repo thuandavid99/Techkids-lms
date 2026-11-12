@@ -104,7 +104,7 @@ export function PythonRunner({ code, chieuCao = 420, inputMacDinh = "" }: { code
           className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${moInput ? "bg-slate-700 text-white" : "text-slate-300 hover:bg-slate-800"}`}>
           <Keyboard className="h-4 w-4" /> Dữ liệu vào
         </button>
-        <span className="ml-auto truncate text-xs text-slate-400" aria-live="polite">
+        <span className={`ml-auto truncate text-xs text-slate-400 ${tt === "tai" || tt === "chay" || ms !== null ? "" : "hidden sm:inline"}`} aria-live="polite">
           {tt === "tai" ? <span className="inline-flex items-center gap-1"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Đang tải Python (lần đầu hơi lâu)…</span>
             : tt === "chay" ? <span className="inline-flex items-center gap-1"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Đang chạy…</span>
             : ms !== null ? `${tt === "loi" ? "Có lỗi" : "Chạy xong"} trong ${(ms / 1000).toFixed(2)} giây` : "Ctrl + Enter để chạy"}

@@ -7,7 +7,7 @@ export type MucDich = "code" | "bai_nop_file" | "tai_lieu" | "de_bai";
 
 export const GIOI_HAN_MB: Record<MucDich, number> = {
   code: 1,          // file .py/.txt (rất nhẹ)
-  bai_nop_file: 10,
+  bai_nop_file: 2,   // Word/PDF nhỏ (không nhận ảnh chụp — tiết kiệm dung lượng gói miễn phí)
   tai_lieu: 50,
   de_bai: 20,
 };
@@ -39,7 +39,7 @@ const DUOI: Record<string, { kieu: Kieu; mime: string }> = {
 
 export const DUOI_CHO_PHEP: Record<MucDich, string[]> = {
   code: ["py", "txt"],
-  bai_nop_file: ["py", "txt", "pdf", "docx", "doc", "xlsx", "pptx", "png", "jpg", "jpeg", "gif", "webp", "zip", "sb3"],
+  bai_nop_file: ["py", "txt", "pdf", "docx", "doc", "xlsx", "pptx", "zip", "sb3"],
   tai_lieu: ["pdf", "docx", "doc", "xlsx", "xls", "pptx", "ppt", "png", "jpg", "jpeg", "gif", "webp", "zip", "py", "txt", "md", "csv", "sb3", "mp3", "mp4"],
   de_bai: ["pdf", "docx", "doc", "xlsx", "pptx", "png", "jpg", "jpeg", "py", "txt", "zip"],
 };
@@ -118,4 +118,10 @@ export function kichThuocDep(bytes: number | null | undefined): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+/** Link bài quiz (Quizizz/Wayground, Kahoot, Blooket, Google Forms…) → hiện nút "Làm Quiz" riêng trong buổi học */
+export function laLinkQuiz(url: string | null | undefined, tenLoai?: string | null): boolean {
+  if (tenLoai && /quiz/i.test(tenLoai)) return true;
+  return !!url && /quizizz\.com|wayground\.com|kahoot\.(it|com)|blooket\.com|forms\.gle|docs\.google\.com\/forms/i.test(url);
 }

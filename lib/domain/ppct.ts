@@ -11,14 +11,17 @@ export interface DongExcel {
   dong: number;                    // số dòng trong Excel (1-based) để báo cảnh báo
   o: string[];                     // chữ trong từng ô
   link: (string | null)[];         // hyperlink trong từng ô (nếu có)
-  toMau: boolean;                  // dòng có tô màu nền nổi bật
+  toMau: boolean;                  // dòng có tô màu nền (không phải trắng)
+  mau?: string[];                  // các màu nền (ARGB) của ô có chữ — để tìm màu "hiếm" đánh dấu ranh giới module
 }
 
 export interface GhepCot { buoi: number; bai: number; noiDung: number; taiLieu: number; loai: number } // -1 = không dùng
 
 export interface LoaiBuoiNhanDien { id: string; ten: string; tu_khoa: string | null; noi_bat: boolean }
 
-export interface TaiLieuLink { tieuDe: string; url: string }
+/** vaiTro theo tên cột: phiếu bài tập / quiz / tham khảo / tài liệu thường */
+export type VaiTroLink = "phieu" | "quiz" | "tham_khao" | "tai_lieu";
+export interface TaiLieuLink { tieuDe: string; url: string; vaiTro?: VaiTroLink }
 
 export interface BuoiXemTruoc {
   dong: number;
@@ -30,10 +33,12 @@ export interface BuoiXemTruoc {
   chuDe: string | null;
   taiLieu: TaiLieuLink[];
   noiBat: boolean;
+  nhanGoc?: string;                // số buổi ghi trong file (trước khi đánh số lại)
+  taoBaiTap?: boolean;             // tạo bài tập nhiều tab (buổi có phiếu bài tập)
 }
 export interface ModuleXemTruoc { ten: string; buoi: BuoiXemTruoc[] }
 export interface CanhBao { dong: number | null; noiDung: string }
-export interface KetQuaPPCT { modules: ModuleXemTruoc[]; canhBao: CanhBao[]; tongBuoi: number }
+export interface KetQuaPPCT { modules: ModuleXemTruoc[]; canhBao: CanhBao[]; tongBuoi: number; lechSo: boolean }
 
 const bo = (s: string) => s.normalize("NFC").toLowerCase();
 
@@ -46,6 +51,66 @@ export function doanGhepCot(tieuDe: string[]): GhepCot {
   const loai = tim(/loại|hình thức/, [buoi, taiLieu, noiDung]);
   const bai = tim(/bài|chủ đề|tên/, [buoi, taiLieu, noiDung, loai]);
   return { buoi, bai, noiDung, taiLieu, loai };
+}
+
+const gon = (s: string) => bo(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/[^a-z0-9+]/g, "");
+
+/** Tên loại khớp chữ trong ô? ("Casestudy" ≈ "Case study", "LT + thực hành" không khớp) */
+export function timLoaiTheoTen(chu: string, cacLoai: LoaiBuoiNhanDien[]): LoaiBuoiNhanDien | null {
+  const g = gon(chu);
+  if (!g) return null;
+  return cacLoai.find((l) => gon(l.ten) === g) ?? null;
+}
+
+/**
+ * Đoán cột dựa cả vào DỮ LIỆU: cột mà phần lớn ô ghi đúng tên loại buổi (Lý thuyết / Bài tập / Kiểm tra…)
+ * là cột Loại — kể cả khi tiêu đề ghi khác (ví dụ "Tài liệu lý thuyết").
+ */
+export function doanGhepCotDayDu(rows: DongExcel[], hd: number, cacLoai: LoaiBuoiNhanDien[]): GhepCot {
+  const tieuDe = rows[hd]?.o ?? [];
+  const g = doanGhepCot(tieuDe);
+  const duLieu = rows.slice(hd + 1, hd + 200);
+  let tot = -1, tiLe = 0;
+  for (let j = 0; j < tieuDe.length; j++) {
+    if (j === g.buoi || j === g.bai || j === g.noiDung) continue;
+    const vals = duLieu.map((r) => String(r.o[j] ?? "").trim()).filter(Boolean);
+    if (vals.length < 3) continue;
+    const t = vals.filter((v) => timLoaiTheoTen(v, cacLoai)).length / vals.length;
+    if (t > tiLe) { tiLe = t; tot = j; }
+  }
+  if (tot >= 0 && tiLe >= 0.6) {
+    g.loai = tot;
+    if (g.taiLieu === tot) g.taiLieu = -1;
+  }
+  return g;
+}
+
+/** Vai trò của link theo tên cột chứa nó (và theo địa chỉ) */
+export function vaiTroLink(tenCot: string, url: string): VaiTroLink {
+  const t = bo(tenCot);
+  if (/quiz|kahoot|wayground|blooket/.test(t) || /quizizz\.com|wayground\.com|kahoot\.(it|com)|blooket\.com/i.test(url)) return "quiz";
+  if (/tham khảo/.test(t)) return "tham_khao";
+  if (/bài tập|phiếu|^bt$/.test(t)) return "phieu";
+  return "tai_lieu";
+}
+
+/** Tên file → tên dễ đọc: "Phieu_bai_tap_Python_Bai_2.docx" → "Phieu bai tap Python Bai 2" */
+export function tenDep(s: string): string {
+  return s.trim().replace(/\.(docx?|pdf|pptx?|xlsx?|txt|py)$/i, "").replace(/[_]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+const TEN_MAC_DINH: Record<VaiTroLink, string> = { phieu: "Phiếu bài tập", quiz: "Làm Quiz", tham_khao: "Tham khảo", tai_lieu: "Tài liệu" };
+
+/** Số buổi kiểu Excel: 12.0 → "12"; 10.11 (gõ nhầm "10,11") → "10–11" */
+export function nhanTuExcel(raw: string): string {
+  const s = String(raw ?? "").trim();
+  const m = /^(\d+)\.(\d+)$/.exec(s);
+  if (m) {
+    if (/^0+$/.test(m[2])) return m[1];
+    const a = Number(m[1]), b = Number(m[2]);
+    if (b > a && b - a <= 3) return `${a}–${b}`;
+  }
+  return chuanHoaNhanBuoi(s);
 }
 
 /** Tìm dòng tiêu đề trong 15 dòng đầu (dòng có chữ "Buổi" và "Bài"/"Nội dung") */
@@ -86,7 +151,7 @@ export function phanTichPPCT(
   rows: DongExcel[],
   ghep: GhepCot,
   cacLoai: LoaiBuoiNhanDien[],
-  opts: { batDauTuDong?: number; macDinhLoaiId?: string | null } = {},
+  opts: { batDauTuDong?: number; macDinhLoaiId?: string | null; danhSoLai?: boolean; tieuDeCot?: string[] } = {},
 ): KetQuaPPCT {
   const canhBao: CanhBao[] = [];
   const macDinh = cacLoai.find((l) => l.id === opts.macDinhLoaiId) ?? cacLoai[0] ?? null;
@@ -95,10 +160,22 @@ export function phanTichPPCT(
 
   const duLieu = rows.slice(opts.batDauTuDong ?? 0).filter((r) => r.o.some((x) => String(x ?? "").trim() !== ""));
 
-  // Màu nền: nếu quá nhiều dòng tô màu (bảng tô xen kẽ) thì bỏ qua tín hiệu màu
-  const soToMau = duLieu.filter((r) => r.toMau).length;
-  const dungMau = soToMau > 0 && soToMau <= Math.max(3, duLieu.length * 0.25);
-  if (soToMau > 0 && !dungMau) canhBao.push({ dong: null, noiDung: "Bảng tô màu nhiều dòng nên hệ thống không dùng màu để chia module. Hãy kiểm tra ranh giới module ở bước xem trước." });
+  // Màu nền: chỉ màu "hiếm" (≤ 25% số dòng) mới coi là đánh dấu nổi bật / ranh giới module.
+  // Bảng tô nền nhạt cho cả bảng (rất hay gặp) thì màu đó bị bỏ qua.
+  const nguong = Math.max(3, duLieu.length * 0.25);
+  const coMauChiTiet = duLieu.some((r) => r.mau !== undefined);
+  let laNoiBat: (r: DongExcel) => boolean;
+  if (coMauChiTiet) {
+    const dem = new Map<string, number>();
+    for (const r of duLieu) for (const c of new Set(r.mau ?? [])) dem.set(c, (dem.get(c) ?? 0) + 1);
+    const hiem = new Set([...dem].filter(([, n]) => n <= nguong).map(([c]) => c));
+    laNoiBat = (r) => (r.mau ?? []).some((c) => hiem.has(c));
+  } else {
+    const soToMau = duLieu.filter((r) => r.toMau).length;
+    const dungMau = soToMau > 0 && soToMau <= nguong;
+    if (soToMau > 0 && !dungMau) canhBao.push({ dong: null, noiDung: "Bảng tô màu nhiều dòng nên hệ thống không dùng màu để chia module. Hãy kiểm tra ranh giới module ở bước xem trước." });
+    laNoiBat = (r) => dungMau && r.toMau;
+  }
 
   const modules: ModuleXemTruoc[] = [];
   let hienTai: ModuleXemTruoc | null = null;
@@ -126,33 +203,52 @@ export function phanTichPPCT(
     if (!buoiRaw && !bai && !noiDung) continue;
 
     if (!hienTai || ketThucModule) moModule();
-    const nhan = chuanHoaNhanBuoi(buoiRaw);
-    const tieuDe = bai || noiDung.split("\n")[0] || "";
+    const nhan = nhanTuExcel(buoiRaw);
+    // "1. Hello word" → "Hello word" (bỏ số thứ tự gõ tay ở đầu tên bài)
+    const tieuDe = (bai || noiDung.split("\n")[0] || "").replace(/^\s*\d{1,3}\s*[.)]\s+/, "").trim();
     if (!tieuDe) canhBao.push({ dong: r.dong, noiDung: `Buổi ${nhan || "?"} thiếu tên bài.` });
     if (!nhan) canhBao.push({ dong: r.dong, noiDung: `Dòng ${r.dong} chưa có số buổi.` });
 
-    const loai = nhanDienLoai(`${bai} ${noiDung}`, loaiCot, cacLoai, macDinh);
+    // Ưu tiên: cột Loại ghi đúng tên → từ khóa trong TÊN BÀI → từ khóa trong nội dung → loại mặc định
+    const loai = timLoaiTheoTen(loaiCot, cacLoai) ?? nhanDienLoai(bai, "", cacLoai, null) ?? nhanDienLoai(`${bai} ${noiDung}`, loaiCot, cacLoai, macDinh);
 
     // Tài liệu: hyperlink trong ô + link viết thẳng trong chữ
     const taiLieu: TaiLieuLink[] = [];
-    const themLink = (url: string, tieu: string) => {
+    const themLink = (url: string, tieu: string, vaiTro: VaiTroLink) => {
       if (!laUrlHopLe(url)) { canhBao.push({ dong: r.dong, noiDung: `Link không hợp lệ: ${url}` }); return; }
-      if (!taiLieu.some((t) => t.url === url)) taiLieu.push({ tieuDe: tieu || "Tài liệu", url });
+      const khoa = (u: string) => u.replace(/[?#].*$/, "").replace(/\/(edit|view)$/, "");
+      if (taiLieu.some((t) => khoa(t.url) === khoa(url))) return;
+      let ten = tieu || TEN_MAC_DINH[vaiTro];
+      const trung = taiLieu.filter((t) => t.tieuDe === ten || t.tieuDe.startsWith(ten + " (")).length;
+      if (trung) ten = `${ten} (${trung + 1})`;
+      taiLieu.push({ tieuDe: ten, url, vaiTro });
     };
+    const tenCot = (i: number) => String(opts.tieuDeCot?.[i] ?? "");
     for (let i = 0; i < r.link.length; i++) {
-      const u = layLink(r, i);
-      if (u) themLink(u.trim(), (r.o[i] ?? "").toString().trim() && !/^https?:/i.test(String(r.o[i])) ? String(r.o[i]).trim() : taiLieuChu || "Tài liệu");
+      const u = layLink(r, i)?.trim();
+      if (!u) continue;
+      const vt = i === ghep.taiLieu ? (vaiTroLink(tenCot(i), u) === "quiz" ? "quiz" : "tai_lieu") : vaiTroLink(tenCot(i), u);
+      const chu = String(r.o[i] ?? "").trim();
+      themLink(u, chu && !/https?:/i.test(chu) ? tenDep(chu) : vt === "tai_lieu" && taiLieuChu && !/^https?:/i.test(taiLieuChu) ? taiLieuChu : TEN_MAC_DINH[vt], vt);
     }
-    for (const u of `${taiLieuChu} ${noiDung}`.match(URL_RE) ?? []) themLink(u, taiLieuChu.replace(URL_RE, "").trim() || "Tài liệu");
+    // Link gõ thẳng trong chữ (không phải hyperlink) ở các ô
+    r.o.forEach((chu, i) => {
+      for (const u of String(chu ?? "").match(URL_RE) ?? []) {
+        const vt = i === ghep.taiLieu || i === ghep.noiDung ? (vaiTroLink("", u) === "quiz" ? "quiz" : "tai_lieu") : vaiTroLink(tenCot(i), u);
+        themLink(u, i === ghep.taiLieu ? taiLieuChu.replace(URL_RE, "").trim() : "", vt);
+      }
+    });
 
-    const noiBat = !!loai?.noi_bat || (dungMau && r.toMau);
+    const toNoiBat = laNoiBat(r);
+    const noiBat = !!loai?.noi_bat || toNoiBat;
     hienTai!.buoi.push({
       dong: r.dong, nhanBuoi: nhan, tieuDe: tieuDe || "(chưa có tên)", tomTat: bai ? noiDung : noiDung.split("\n").slice(1).join("\n"),
       loaiId: loai?.id ?? null, loaiTen: loai?.ten ?? "", chuDe: null, taiLieu, noiBat,
+      nhanGoc: nhan, taoBaiTap: taiLieu.some((t) => t.vaiTro === "phieu"),
     });
 
     // Ranh giới module: "Kiểm tra module N" hoặc dòng tô màu nổi bật
-    if (LA_KIEM_TRA_MODULE.test(`${bai} ${noiDung}`) || (dungMau && r.toMau)) ketThucModule = true;
+    if (LA_KIEM_TRA_MODULE.test(`${bai} ${noiDung}`) || toNoiBat) ketThucModule = true;
   }
 
   // Gom chủ đề: các buổi liên tiếp cùng tên bài trong một module
@@ -167,6 +263,27 @@ export function phanTichPPCT(
   }
 
   // Cảnh báo số buổi trùng / lệch thứ tự (chỉ cảnh báo, không từ chối)
+  const canhBaoSo = kiemTraSoBuoi(modules);
+  const lechSo = canhBaoSo.length > 0;
+  if (opts.danhSoLai) {
+    // Đánh số lại 1, 2, 3… theo thứ tự dòng; buổi gộp ("10–11", "43, 44") vẫn chiếm 2 số
+    let so = 1; const doi: string[] = [];
+    for (const m of modules) for (const b of m.buoi) {
+      const rong = Math.max(1, soTrongNhan(b.nhanBuoi).length);
+      const moi = rong === 1 ? String(so) : `${so}–${so + rong - 1}`;
+      if (moi !== b.nhanBuoi) doi.push(`dòng ${b.dong}: ${b.nhanBuoi || "?"} → ${moi}`);
+      b.nhanBuoi = moi; so += rong;
+    }
+    if (doi.length) canhBao.push({ dong: null, noiDung: `Đã đánh số lại ${doi.length} buổi theo thứ tự dòng (${doi.slice(0, 8).join("; ")}${doi.length > 8 ? "; …" : ""}).` });
+  } else canhBao.push(...canhBaoSo);
+
+  const kq = modules.filter((m) => m.buoi.length > 0);
+  if (kq.length === 0) canhBao.push({ dong: null, noiDung: "Không tìm thấy buổi học nào. Kiểm tra lại trang tính và cách ghép cột." });
+  return { modules: kq, canhBao, tongBuoi: kq.reduce((s, m) => s + m.buoi.length, 0), lechSo };
+}
+
+function kiemTraSoBuoi(modules: ModuleXemTruoc[]): CanhBao[] {
+  const canhBao: CanhBao[] = [];
   const daCo = new Map<number, number>();
   let truoc = 0;
   for (const m of modules) for (const b of m.buoi) {
@@ -180,8 +297,5 @@ export function phanTichPPCT(
     }
     if (so.length) truoc = Math.max(truoc, so[so.length - 1]);
   }
-
-  const kq = modules.filter((m) => m.buoi.length > 0);
-  if (kq.length === 0) canhBao.push({ dong: null, noiDung: "Không tìm thấy buổi học nào. Kiểm tra lại trang tính và cách ghép cột." });
-  return { modules: kq, canhBao, tongBuoi: kq.reduce((s, m) => s + m.buoi.length, 0) };
+  return canhBao;
 }

@@ -9,8 +9,8 @@ export function AuthShell({ children, minhHoa = IMG.login, kieu = "hs", tieuDe, 
   const gv = kieu === "gv";
   return (
     <main className={`relative min-h-dvh overflow-hidden ${gv ? "bg-gradient-to-br from-navy-950 via-navy-800 to-[#1d3a8a]" : "bg-gradient-to-br from-[#a8d4ff] via-[#d6ebff] to-[#eaf4ff]"}`}>
-      <div className="mx-auto grid min-h-dvh max-w-6xl items-center gap-8 px-5 py-8 lg:grid-cols-[1.1fr_0.9fr]">
-        <div>
+      <div className="mx-auto grid min-h-dvh max-w-6xl grid-cols-1 items-center gap-8 px-5 py-8 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="min-w-0">
           <div className="flex items-center gap-3">
             <Image src={IMG.logo} alt="" width={84} height={84} className="h-16 w-16 rounded-full lg:h-20 lg:w-20" priority />
             <div className="leading-tight">
@@ -31,7 +31,7 @@ export function AuthShell({ children, minhHoa = IMG.login, kieu = "hs", tieuDe, 
             <Image src={minhHoa} alt="" width={640} height={380} className="mt-6 hidden h-auto w-full max-w-[600px] lg:block" priority />
           )}
         </div>
-        <div className="w-full">{children}</div>
+        <div className="w-full min-w-0">{children}</div>
       </div>
     </main>
   );

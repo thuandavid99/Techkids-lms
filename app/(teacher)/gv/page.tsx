@@ -7,14 +7,18 @@ import { Card, PageGrid, BrandCard, CardTitle } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/States";
-import { tenBaiTap } from "@/lib/domain/naming";
-import { fmtAgo } from "@/lib/domain/time";
+import { tenBaiTap, tenBuoi } from "@/lib/domain/naming";
+import { fmtAgo, fmtDate } from "@/lib/domain/time";
+import { chonBuoiMo } from "@/lib/domain/mo-buoi";
+import { MoBuoiLop, type LopMoBuoi } from "@/components/teacher/MoBuoiHomNay";
 
 export const metadata = { title: "Tổng quan các lớp" };
 
 export default async function Page() {
   const sb = await createClient();
   const lops = await cacLop(sb);
+  // Lớp "tự mở theo lịch": mở các buổi đã tới ngày trước khi đọc dữ liệu
+  await Promise.all(lops.filter((l) => l.che_do_mo === "theo_lich").map((l) => sb.rpc("mo_buoi_theo_lich", { p_class: l.id })));
   const [{ tomTat, theThe }, { data: hs }, { data: moiNop }, ...lich] = await Promise.all([
     tongQuan(sb, lops),
     sb.from("profiles").select("id, class_id").eq("vai_tro", "hoc_sinh").is("deleted_at", null).eq("dang_hoc", true),
@@ -24,6 +28,15 @@ export default async function Page() {
   const siSo = new Map<string, number>();
   for (const h of (hs as { class_id: string | null }[]) ?? []) if (h.class_id) siSo.set(h.class_id, (siSo.get(h.class_id) ?? 0) + 1);
   const tenLop = new Map(lops.map((l) => [l.id, l.ten_lop]));
+  const gat = (b: { lesson_id: string; nhan_buoi: string; tieu_de: string; ngay_hoc: string | null; da_mo: boolean } | null) =>
+    b ? { lesson_id: b.lesson_id, ten: tenBuoi(b.nhan_buoi, b.tieu_de), ngay: b.ngay_hoc ? fmtDate(b.ngay_hoc) : "", mo: b.da_mo } : null;
+  const moBuoi: LopMoBuoi[] = lops.map((l, i) => {
+    const c = chonBuoiMo(lich[i] ?? []);
+    return {
+      id: l.id, ten_lop: l.ten_lop, cheDo: l.che_do_mo === "theo_lich" ? "theo_lich" : "thu_cong",
+      homNay: gat(c.homNay), coLichHomNay: c.coLichHomNay, tiepTheo: gat(c.tiepTheo), soDaMo: c.soDaMo, tong: c.tong,
+    };
+  });
 
   const CHIP = [
     { I: Hourglass, n: tomTat.choCham, t: "bài chờ chấm", href: "/gv/bai-tap/hang-doi", c: "text-cam-500" },
@@ -58,23 +71,22 @@ export default async function Page() {
               const t = theThe[l.id] ?? { chuaNop: 0, choCham: 0 };
               const d = dangOBuoi(lich[i] ?? []);
               return (
-                <Link key={l.id} href={`/gv/lop/${l.id}`} className="card card-pad flex flex-col gap-4 transition-transform hover:-translate-y-0.5">
-                  <div className="flex items-center gap-4">
-                    <span className="flex h-20 w-20 items-center justify-center rounded-2xl bg-xanh-50"><Users className="h-10 w-10 text-xanh-600" /></span>
-                    <div>
-                      <p className="text-3xl font-extrabold">Lớp {l.ten_lop}</p>
-                      <p className="text-xl text-slate-600">{siSo.get(l.id) ?? 0} HS</p>
-                      <p className="text-sm text-slate-500">Đang ở buổi {d.dangO}/{d.tong}</p>
+                <div key={l.id} className="card card-pad flex flex-col gap-3">
+                  {/* Bấm vào phần đầu thẻ → vào trang lớp (ma trận tiến độ) */}
+                  <Link href={`/gv/lop/${l.id}`} className="group flex items-center gap-3">
+                    <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-xanh-50"><Users className="h-7 w-7 text-xanh-600" /></span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-2xl font-extrabold leading-tight group-hover:text-xanh-700">Lớp {l.ten_lop}</p>
+                      <p className="text-sm text-slate-600">{siSo.get(l.id) ?? 0} học sinh · đang ở buổi {d.dangO}/{d.tong}</p>
                     </div>
+                    <span className="shrink-0 rounded-full bg-xanh-500 p-2 text-white transition-transform group-hover:translate-x-0.5"><ArrowRight className="h-5 w-5" /></span>
+                  </Link>
+                  <div className="flex flex-wrap gap-2">
+                    <Link href={`/gv/bao-cao?lop=${l.id}`}><Pill mau={t.chuaNop ? "red" : "green"} className="!px-3 !py-1 !text-sm">{t.chuaNop} chưa nộp</Pill></Link>
+                    <Link href={`/gv/bai-tap/hang-doi?lop=${l.id}`}><Pill mau={t.choCham ? "orange" : "green"} className="!px-3 !py-1 !text-sm">{t.choCham} bài chờ chấm</Pill></Link>
                   </div>
-                  <div className="flex items-end justify-between gap-2">
-                    <div className="flex flex-col items-start gap-2">
-                      <Pill mau={t.chuaNop ? "red" : "green"} className="!px-4 !py-1.5 !text-base">{t.chuaNop} chưa nộp</Pill>
-                      <Pill mau={t.choCham ? "orange" : "green"} className="!px-4 !py-1.5 !text-base">{t.choCham} bài chờ chấm</Pill>
-                    </div>
-                    <span className="rounded-full bg-xanh-500 p-2.5 text-white"><ArrowRight className="h-5 w-5" /></span>
-                  </div>
-                </Link>
+                  <MoBuoiLop l={moBuoi[i]} />
+                </div>
               );
             })}
           </div>

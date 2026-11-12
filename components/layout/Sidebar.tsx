@@ -18,7 +18,7 @@ function Logo({ nhan }: { nhan?: string }) {
   return (
     <Link href="/" className="flex flex-col items-center px-3 pt-5 pb-4 text-center">
       {nhan && <span className="mb-2 rounded-full bg-cam-500 px-3 py-0.5 text-[0.7rem] font-bold uppercase tracking-wider text-white">{nhan}</span>}
-      <Image src={IMG.logoRobot} alt="" width={120} height={82} className="h-auto w-[110px]" priority />
+      <Image src={IMG.logoRobot} alt="" width={96} height={96} className="h-[84px] w-[84px] rounded-full shadow-lg ring-4 ring-white/15" priority />
       <span className="mt-1 text-[1.65rem] font-extrabold leading-none tracking-tight">
         <span className="text-white">{BRAND.phan1}</span><span className="text-vang-400">{BRAND.phan2}</span>
       </span>

@@ -10,7 +10,7 @@ export function Card({ children, className = "", pad = true, as: As = "section" 
 export function CardTitle({ icon, children, action }: { icon?: React.ReactNode; children: React.ReactNode; action?: React.ReactNode }) {
   return (
     <div className="mb-3 flex items-center justify-between gap-3">
-      <h2 className="h-card flex items-center gap-2">{icon}{children}</h2>
+      <h2 className="h-card flex min-w-0 items-center gap-2">{icon}{children}</h2>
       {action}
     </div>
   );
@@ -24,9 +24,9 @@ export function XemTatCa({ href, children = "Xem tất cả" }: { href: string; 
 export function PageGrid({ main, aside }: { main: React.ReactNode; aside?: React.ReactNode }) {
   if (!aside) return <div className="space-y-5">{main}</div>;
   return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+    <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
       <div className="min-w-0 space-y-5">{main}</div>
-      <aside className="space-y-5">{aside}</aside>
+      <aside className="min-w-0 space-y-5">{aside}</aside>
     </div>
   );
 }
@@ -40,7 +40,7 @@ export function PageHeader({ title, actions, back, sub }: { title: React.ReactNo
         </Link>
       )}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="h-page">{title}</h1>
+        <h1 className="h-page min-w-0">{title}</h1>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
       </div>
       {sub && <div className="mt-2 text-slate-600">{sub}</div>}

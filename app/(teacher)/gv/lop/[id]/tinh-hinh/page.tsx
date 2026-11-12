@@ -57,8 +57,8 @@ export default async function Page({ params, searchParams }: { params: Promise<{
     <Card>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="h-page">Tình hình nộp bài theo buổi</h1>
-        <form action={`/gv/lop/${id}/tinh-hinh`} className="flex gap-2">
-          <select name="buoi" defaultValue={b.lesson_id} aria-label="Chọn buổi" className="input !w-auto max-w-[320px] !rounded-2xl">
+        <form action={`/gv/lop/${id}/tinh-hinh`} className="flex w-full min-w-0 gap-2 sm:w-auto">
+          <select name="buoi" defaultValue={b.lesson_id} aria-label="Chọn buổi" className="input min-w-0 flex-1 !rounded-2xl sm:!w-auto sm:max-w-[320px] sm:flex-none">
             {buoiCoBai.map((x) => <option key={x.lesson_id} value={x.lesson_id}>{tenBuoi(x.nhan_buoi, x.tieu_de)}{x.da_day ? " ✓" : ""}</option>)}
           </select>
           <button className={btnClass("outline", "md")}>Xem</button>

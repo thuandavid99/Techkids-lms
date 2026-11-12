@@ -15,7 +15,7 @@ export interface Profile {
   email?: string | null;
 }
 
-export interface Lop { id: string; ten_lop: string; nam_hoc: string; archived: boolean; deleted_at: string | null }
+export interface Lop { id: string; ten_lop: string; nam_hoc: string; archived: boolean; deleted_at: string | null; che_do_mo?: "thu_cong" | "theo_lich" }
 
 export interface LoaiBuoi {
   id: string; ten: string; mau: string; icon: string; co_bai_nop_mac_dinh: boolean;

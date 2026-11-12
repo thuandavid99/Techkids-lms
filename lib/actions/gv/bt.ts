@@ -12,7 +12,7 @@ import { getProfile, laQuanTri } from "@/lib/auth";
 const KHONG_QUYEN = "Bạn không có quyền sửa bài tập này (bài chung chỉ quản trị sửa; giáo viên sửa bản riêng cho lớp mình).";
 import type { KQ } from "@/lib/types";
 
-const COT = ["ma", "tieu_de", "de_bai", "diem_toi_da", "loai_nop", "cho_nop_tre", "khoa_nop", "tinh_diem", "bat_buoc", "he_so", "hoc_ky", "hien_thi"] as const;
+const COT = ["ma", "tieu_de", "de_bai", "diem_toi_da", "loai_nop", "cho_nop_tre", "khoa_nop", "tinh_diem", "bat_buoc", "he_so", "hoc_ky", "hien_thi", "so_bai"] as const;
 
 /** Thêm bài tập mới cho buổi (mã tự đặt "số buổi.thứ tự") → trả id để mở trang soạn */
 export async function themBaiTap(lessonId: string): Promise<KQ> {
@@ -52,15 +52,17 @@ export async function luuBaiTap(_: KQ, fd: FormData): Promise<KQ> {
       diem_toi_da: Number(fd.get("diem_toi_da") || 10), loai_nop: str(fd, "loai_nop"),
       cho_nop_tre: bool(fd, "cho_nop_tre"), khoa_nop: bool(fd, "khoa_nop"), tinh_diem: bool(fd, "tinh_diem"),
       bat_buoc: bool(fd, "bat_buoc"), he_so: Number(fd.get("he_so") || 1), hoc_ky: Number(fd.get("hoc_ky") || 1), hien_thi: bool(fd, "hien_thi"),
+      so_bai: Math.round(Number(fd.get("so_bai") || 1)),
     };
     if (!v.tieu_de) return loi("Nhập tên bài tập.");
     if (!["code", "file", "ca_hai", "ngoai_he_thong"].includes(v.loai_nop)) return loi("Loại bài nộp không hợp lệ.");
     if (!(v.diem_toi_da > 0 && v.diem_toi_da <= 100)) return loi("Điểm tối đa từ 1 đến 100.");
     if (!(v.he_so > 0 && v.he_so <= 10)) return loi("Hệ số từ 0.1 đến 10.");
     if (![1, 2].includes(v.hoc_ky)) return loi("Học kỳ là 1 hoặc 2.");
+    if (!(v.so_bai >= 1 && v.so_bai <= 50)) return loi("Số bài nhỏ từ 1 đến 50.");
 
     if (phamVi === "tat_ca") {
-      const { data: cu } = await sb.from("assignments").select("ma, tieu_de, de_bai, diem_toi_da, loai_nop, cho_nop_tre, khoa_nop, tinh_diem, bat_buoc, he_so, hoc_ky, hien_thi").eq("id", id).single();
+      const { data: cu } = await sb.from("assignments").select("ma, tieu_de, de_bai, diem_toi_da, loai_nop, cho_nop_tre, khoa_nop, tinh_diem, bat_buoc, he_so, hoc_ky, hien_thi, so_bai").eq("id", id).single();
       chk(await sb.from("assignments").update(v).eq("id", id));
       if (cu && (cu as unknown as Record<string, unknown>).hien_thi !== v.hien_thi && !v.hien_thi) await ghiNhatKy("an", "assignments", id);
       await ghiNhatKy("sua", "assignments", id, cu, v);

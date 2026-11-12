@@ -27,7 +27,7 @@ export default async function Page() {
           <h2 className="h-card mb-3">Thông báo của lớp</h2>
           {!lopTB?.length ? <p className="text-sm text-slate-500">Chưa có.</p> : (
             <ul className="space-y-3">
-              {lopTB.map((a) => <li key={a.id} className="rounded-xl bg-tim-50 px-3 py-2 text-sm"><p className="whitespace-pre-line">{a.noi_dung}</p><p className="mt-1 text-xs text-slate-500">{fmtDateTime(a.tao_luc)}</p></li>)}
+              {lopTB.map((a) => <li key={a.id} className="rounded-xl bg-tim-50 px-3 py-2 text-sm"><p className="chu-dai whitespace-pre-line">{a.noi_dung}</p><p className="mt-1 text-xs text-slate-500">{fmtDateTime(a.tao_luc)}</p></li>)}
             </ul>
           )}
         </Card>

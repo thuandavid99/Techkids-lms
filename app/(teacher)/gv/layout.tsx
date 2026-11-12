@@ -48,9 +48,9 @@ export default async function TeacherLayout({ children }: { children: React.Reac
     <div className="lg:flex">
       <Sidebar items={qt ? MENU_QT : MENU_GV} nhan={qt ? "Quản trị" : "Giáo viên"} />
       <div className="min-w-0 flex-1 px-4 pb-10 pt-3 sm:px-6 lg:px-8">
-        <header className="no-print mb-5 flex items-center justify-between gap-3 pl-14 lg:pl-0">
+        <header className="no-print mb-5 flex min-w-0 items-center justify-between gap-2 pl-14 sm:gap-3 lg:pl-0">
           <ClassSelect lops={lops.map((l) => ({ id: l.id, ten_lop: l.ten_lop }))} current={lop?.id ?? null} />
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <Bell_ count={count ?? 0} href="/gv/thong-bao" />
             <UserMenu name={p.ho_ten} avatar={p.avatar} laGv vaiTro={TEN_VAI_TRO[p.vai_tro]} />
           </div>

@@ -36,6 +36,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const vals = (x: Record<string, unknown>): BaiTapVals => ({
     id, ma: String(x.ma ?? ""), tieu_de: String(x.tieu_de ?? ""), de_bai: String(x.de_bai ?? ""), diem_toi_da: Number(x.diem_toi_da), loai_nop: String(x.loai_nop),
     cho_nop_tre: !!x.cho_nop_tre, khoa_nop: !!x.khoa_nop, tinh_diem: !!x.tinh_diem, bat_buoc: !!x.bat_buoc, he_so: Number(x.he_so), hoc_ky: Number(x.hoc_ky), hien_thi: !!x.hien_thi,
+    so_bai: Number(x.so_bai ?? 1) || 1,
   });
 
   return (

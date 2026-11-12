@@ -14,6 +14,7 @@ import { hanhTrinh, phanTramHoanThanh, diemTrungBinh, tinhHuyHieu } from "@/lib/
 import { trangThaiBuoi, baiCanLamGanNhat } from "@/lib/domain/lesson-status";
 import { tinhTrangThai } from "@/lib/domain/status";
 import { tenBuoi } from "@/lib/domain/naming";
+import { BuoiSapMo, type BuoiKhoa } from "@/components/student/BuoiSapMo";
 import { fmtDate } from "@/lib/domain/time";
 
 export const metadata = { title: "Trang chủ" };
@@ -23,9 +24,10 @@ export default async function TrangChu() {
   const { sb, lop, dong, buoi, loai, modules, cd } = await duLieuHs(p);
   const now = new Date();
 
-  const [{ data: tbs }, { data: banCungLop }] = await Promise.all([
+  const [{ data: tbs }, { data: banCungLop }, { data: sapMo }] = await Promise.all([
     sb.from("notifications").select("id, noi_dung, tao_luc, loai, da_doc, lien_ket").eq("user_id", p.id).order("tao_luc", { ascending: false }).limit(3),
     sb.rpc("ds_ban_cung_lop"),
+    sb.rpc("hs_buoi_sap_mo", { p_so: 1 }),
   ]);
 
   const ht = hanhTrinh(buoi, dong, now);
@@ -94,10 +96,10 @@ export default async function TrangChu() {
         {/* 4 nút chức năng lớn */}
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {NUT.map(({ href, label, I, c }) => (
-            <Link key={href + label[0]} href={href} className={`flex items-center gap-3 rounded-2xl bg-gradient-to-br ${c} px-4 py-4 text-white shadow-md transition-transform hover:-translate-y-0.5`}>
-              <I className="h-8 w-8 shrink-0" />
-              <span className="text-[0.95rem] font-semibold leading-tight">{label[0]}<br />{label[1]}</span>
-              <ArrowRight className="ml-auto h-4 w-4 shrink-0" />
+            <Link key={href + label[0]} href={href} className={`flex min-w-0 items-center gap-2 rounded-2xl bg-gradient-to-br ${c} px-3 py-3.5 text-white shadow-md transition-transform hover:-translate-y-0.5 sm:gap-3 sm:px-4 sm:py-4`}>
+              <I className="h-6 w-6 shrink-0 sm:h-8 sm:w-8" />
+              <span className="min-w-0 text-sm font-semibold leading-tight sm:text-[0.95rem]">{label[0]}<br />{label[1]}</span>
+              <ArrowRight className="ml-auto hidden h-4 w-4 shrink-0 sm:block" />
             </Link>
           ))}
         </div>
@@ -123,6 +125,7 @@ export default async function TrangChu() {
               })}
             </div>
           )}
+          <div className="mt-3"><BuoiSapMo gon ds={(sapMo as BuoiKhoa[] | null) ?? []} /></div>
         </Card>
 
         {/* Thông tin cá nhân */}

@@ -1,9 +1,9 @@
-import { Trash2, History } from "lucide-react";
+import { Trash2, History, DatabaseBackup, Download } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getProfile, laQuanTri } from "@/lib/auth";
 import { cacLoaiBuoi, caiDat } from "@/lib/server/data";
 import { Card, CardTitle, PageHeader } from "@/components/ui/Card";
-import { ButtonLink } from "@/components/ui/Button";
+import { ButtonLink, btnClass } from "@/components/ui/Button";
 import { LoaiBuoiList, DanhMucDon } from "@/components/teacher/DanhMuc";
 import { QuyTacForm, DoiMatKhauGvForm } from "@/components/teacher/CaiDatForms";
 
@@ -47,6 +47,11 @@ export default async function Page() {
         <Card><CardTitle>Mẫu tin nhắn phụ huynh</CardTitle><DanhMucDon bang="message_templates" ds={mt ?? []} /></Card>
         <Card><CardTitle>Quy tắc chung</CardTitle><QuyTacForm lamTron={Number(cd.lam_tron_diem ?? 1)} choNopTre={cd.cho_nop_tre_mac_dinh !== false} hsTaiPhieu={cd.hs_tai_phieu_tien_do === true} /></Card>
         <Card><CardTitle>Đổi mật khẩu giáo viên</CardTitle><DoiMatKhauGvForm /></Card>
+        <Card className="lg:col-span-2">
+          <CardTitle icon={<DatabaseBackup className="h-6 w-6 text-la-600" />}>Sao lưu dữ liệu</CardTitle>
+          <p className="text-sm text-slate-600">Gói Supabase miễn phí <b>không tự sao lưu</b>. Mỗi tháng (và cuối mỗi học kỳ) thầy bấm nút dưới để tải 1 file Excel gồm: danh sách học sinh, mọi bài nộp (kèm code), điểm, nhận xét — rồi cất vào Google Drive.</p>
+          <a href="/api/gv/xuat?loai=sao-luu" className={btnClass("green", "md", "mt-3")}><Download className="h-4 w-4" /> Tải file sao lưu (.xlsx)</a>
+        </Card>
       </div>
     </div>
   );

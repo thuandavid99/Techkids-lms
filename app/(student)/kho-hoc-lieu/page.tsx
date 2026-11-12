@@ -86,7 +86,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ l
               {tatCa.slice(0, 5).map((m) => (
                 <li key={m.id} className="flex items-center gap-3">
                   <FileIcon ten={m.ten_goc ?? m.tieu_de} nguon={m.nguon} />
-                  <a href={`/api/tai-ve?loai=tai-lieu&id=${m.id}${m.cho_phep_tai || m.nguon === "link" ? "" : "&xem=1"}`} className="min-w-0 flex-1 truncate font-medium hover:text-xanh-600">{m.tieu_de}</a>
+                  <a href={`/api/tai-ve?loai=tai-lieu&id=${m.id}${m.cho_phep_tai || m.nguon === "link" ? "" : "&xem=1"}`} className="line-clamp-2 min-w-0 flex-1 chu-dai font-medium hover:text-xanh-600" title={m.tieu_de}>{m.tieu_de}</a>
                   {moi(m.tao_luc) ? <Pill mau="green">mới</Pill> : <span className="text-xs text-slate-400">{fmtAgo(m.tao_luc)}</span>}
                 </li>
               ))}

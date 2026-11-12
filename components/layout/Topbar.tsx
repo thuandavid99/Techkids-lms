@@ -8,8 +8,9 @@ import { chonLop } from "@/lib/actions/common";
 import { useRouter } from "next/navigation";
 
 export function ClassPill({ ten, href }: { ten: string; href?: string }) {
-  const inner = (<><GraduationCap className="h-5 w-5 text-navy-800" /> <span className="font-semibold">Lớp {ten}</span>{href && <ChevronDown className="h-4 w-4" />}</>);
-  const cls = "card inline-flex h-11 items-center gap-2 rounded-2xl px-4 text-[0.95rem]";
+  const inner = (<><GraduationCap className="h-5 w-5 shrink-0 text-navy-800" /> <span className="truncate font-semibold">Lớp {ten}</span>{href && <ChevronDown className="hidden h-4 w-4 shrink-0 sm:block" />}</>);
+  // min-w-0 + truncate: tên lớp dài tự rút gọn "…" thay vì đẩy chuông/ảnh đại diện ra ngoài màn hình
+  const cls = "card inline-flex h-11 min-w-0 max-w-full items-center gap-2 rounded-2xl px-4 text-[0.95rem]";
   return href ? <Link href={href} className={cls}>{inner}</Link> : <span className={cls}>{inner}</span>;
 }
 
@@ -19,10 +20,10 @@ export function ClassSelect({ lops, current }: { lops: { id: string; ten_lop: st
   const router = useRouter();
   if (lops.length === 0) return <ClassPill ten="(chưa có lớp)" />;
   return (
-    <label className="card inline-flex h-11 items-center gap-2 rounded-2xl px-3 text-[0.95rem]">
-      <GraduationCap className="h-5 w-5 text-navy-800" />
+    <label className="card inline-flex h-11 min-w-0 max-w-full items-center gap-2 rounded-2xl px-3 text-[0.95rem]">
+      <GraduationCap className="h-5 w-5 shrink-0 text-navy-800" />
       <span className="sr-only">Chọn lớp</span>
-      <select className="cursor-pointer bg-transparent font-semibold outline-none" value={current ?? ""} disabled={pending}
+      <select className="min-w-0 max-w-full cursor-pointer truncate bg-transparent font-semibold outline-none sm:max-w-[18rem]" value={current ?? ""} disabled={pending}
         onChange={(e) => start(async () => { await chonLop(e.target.value); router.refresh(); })}>
         {lops.map((l) => <option key={l.id} value={l.id}>Lớp {l.ten_lop}</option>)}
       </select>
@@ -32,7 +33,7 @@ export function ClassSelect({ lops, current }: { lops: { id: string; ten_lop: st
 
 export function Bell_({ count, href }: { count: number; href: string }) {
   return (
-    <Link href={href} aria-label={`Thông báo${count ? `, ${count} chưa đọc` : ""}`} className="card relative inline-flex h-11 w-11 items-center justify-center rounded-2xl">
+    <Link href={href} aria-label={`Thông báo${count ? `, ${count} chưa đọc` : ""}`} className="card relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
       <Bell className="h-5 w-5 text-navy-800" />
       {count > 0 && <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-do-600 px-1 text-[0.7rem] font-bold text-white">{count > 99 ? "99+" : count}</span>}
     </Link>
@@ -54,14 +55,15 @@ export function UserMenu({ name, avatar, laGv, vaiTro }: { name: string; avatar:
     <div ref={ref} className="relative">
       <button onClick={() => setOpen((x) => !x)} aria-expanded={open} aria-haspopup="menu" className="card inline-flex h-11 items-center gap-2 rounded-2xl pl-1.5 pr-3">
         <Avatar name={name} avatar={avatar} size={34} />
-        <span className="hidden max-w-[160px] flex-col items-start leading-tight sm:flex">
-          <span className="max-w-[160px] truncate font-semibold">{name}</span>
+        <span className="hidden max-w-[160px] flex-col lg:max-w-[220px] items-start leading-tight sm:flex">
+          <span className="max-w-[160px] truncate font-semibold lg:max-w-[220px]" title={name}>{name}</span>
           {vaiTro && <span className={`text-[0.7rem] font-bold uppercase tracking-wide ${vaiTro === "Quản trị" ? "text-cam-600" : "text-xanh-600"}`}>{vaiTro}</span>}
         </span>
-        <ChevronDown className="h-4 w-4" />
+        <ChevronDown className="hidden h-4 w-4 sm:block" />
       </button>
       {open && (
-        <div role="menu" className="card absolute right-0 top-12 z-50 w-56 overflow-hidden py-1">
+        <div role="menu" className="card absolute right-0 top-12 z-50 w-60 max-w-[calc(100vw-2rem)] overflow-hidden py-1">
+          <p className="border-b border-vien px-4 pb-2 pt-1.5 text-sm font-bold leading-snug text-navy-950">{name}</p>
           {items.map(({ href, label, I }) => (
             <Link key={href} href={href} role="menuitem" onClick={() => setOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-xanh-50"><I className="h-4 w-4" /> {label}</Link>
           ))}

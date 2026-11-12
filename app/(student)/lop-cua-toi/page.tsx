@@ -37,7 +37,7 @@ export default async function Page() {
             </ul>
             <div className="flex items-center gap-4">
               <ProgressRing value={tongBuoi ? Math.round((daDay.length / tongBuoi) * 100) : 0} size={110} />
-              <Image src={IMG.school} alt="" width={120} height={95} className="hidden h-auto w-28 sm:block" />
+              <Image src={IMG.school} alt="" width={120} height={90} unoptimized className="hidden h-auto w-28 sm:block" />
             </div>
           </div>
         </Card>

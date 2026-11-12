@@ -46,6 +46,7 @@
 
 html { -webkit-text-size-adjust: 100%; }
 body {
+  overflow-wrap: break-word; /* từ quá dài (tên file, đường link) tự xuống dòng thay vì tràn ra ngoài */
   color: var(--color-navy-950);
   background: linear-gradient(180deg, #e8f1ff 0%, #f2f7ff 45%, #f7faff 100%);
   background-attachment: fixed;
@@ -61,13 +62,16 @@ body {
   }
   .card-pad { padding: 1.25rem; }
   @media (min-width: 640px) { .card-pad { padding: 1.5rem; } }
-  .h-page { font-size: 1.75rem; line-height: 1.2; font-weight: 800; color: var(--color-navy-950); letter-spacing: -0.01em; }
+  .h-page { font-size: 1.5rem; line-height: 1.2; font-weight: 800; color: var(--color-navy-950); letter-spacing: -0.01em; overflow-wrap: anywhere; }
+  @media (min-width: 640px) { .h-page { font-size: 1.75rem; } }
   @media (min-width: 1024px) { .h-page { font-size: 2.1rem; } }
   .h-card { font-size: 1.15rem; font-weight: 800; color: var(--color-navy-950); }
   .input {
     width: 100%; border-radius: 12px; border: 1px solid #cfdcf3; background: #f6f9ff;
     padding: 0.65rem 0.9rem; font-size: 0.95rem; color: var(--color-navy-950); outline: none;
+    max-width: 100%; /* ô chọn có chữ dài (tên lớp, tên module) không đẩy tràn trang trên điện thoại */
   }
+  select.input { text-overflow: ellipsis; }
   .input:focus { border-color: var(--color-xanh-500); background: #fff; box-shadow: 0 0 0 3px rgba(59,130,246,.18); }
   .label { display:block; font-size: 0.85rem; font-weight: 600; color: #334155; margin-bottom: 0.3rem; }
   .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -75,6 +79,10 @@ body {
   .tbl th { text-align: left; font-weight: 700; font-size: .85rem; color: var(--color-navy-950); padding: .7rem .75rem; border-bottom: 1px solid var(--color-vien); white-space: nowrap; }
   .tbl td { padding: .7rem .75rem; border-bottom: 1px solid #eef3fb; font-size: .92rem; vertical-align: middle; }
   .tbl tr:last-child td { border-bottom: 0; }
+  /* Hàng "nội dung + nút bấm": chữ không bị bóp thành cột hẹp — hết chỗ thì nút tự xuống dòng dưới */
+  .hang-chu { min-width: 0; flex: 1 1 14rem; overflow-wrap: anywhere; }
+  /* Tên file / đường link dài không có dấu cách */
+  .chu-dai { overflow-wrap: anywhere; word-break: break-word; }
   .link { color: var(--color-xanh-600); font-weight: 600; }
   .link:hover { text-decoration: underline; }
   .code-block { background: #eef3fb; border-radius: 12px; padding: .9rem 1.1rem; font-family: var(--font-mono); font-size: .9rem; overflow-x: auto; white-space: pre; }

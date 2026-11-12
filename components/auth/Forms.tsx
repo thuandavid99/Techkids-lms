@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { UserRound, Lock, Eye, EyeOff, Home, ArrowLeft, CheckCircle2, Mail } from "lucide-react";
+import { UserRound, Lock, Eye, EyeOff, Home, ArrowLeft, CheckCircle2, Mail, GraduationCap, Presentation } from "lucide-react";
 import { dangNhap, guiYeuCauQuenMk, doiMatKhauLanDau } from "@/lib/actions/auth";
 import { btnClass } from "@/components/ui/Button";
 import type { KQ } from "@/lib/types";
@@ -54,18 +54,27 @@ export function LoginForm({ khu = "hs" }: { khu?: "hs" | "gv" }) {
       <Nut pending="Đang đăng nhập…">Đăng nhập</Nut>
       <div className="flex flex-col items-center gap-2 pt-1 text-sm">
         {gv ? (
-          <>
-            <p className="text-center text-slate-500">Quên mật khẩu? Liên hệ quản trị để được cấp lại.</p>
-            <Link href="/dang-nhap" className="inline-flex items-center gap-1.5 text-xanh-700 hover:underline"><ArrowLeft className="h-4 w-4" /> Trang đăng nhập học sinh</Link>
-          </>
+          <p className="text-center text-slate-500">Quên mật khẩu? Liên hệ quản trị để được cấp lại.</p>
         ) : (
           <>
             <Link href="/quen-mat-khau" className="font-semibold text-xanh-600 hover:underline">Quên mật khẩu?</Link>
             <Link href="/" className="inline-flex items-center gap-1.5 text-xanh-700 hover:underline"><Home className="h-4 w-4" /> Hoặc quay lại trang chủ</Link>
-            <Link href="/giao-vien" className="mt-1 text-xs text-slate-500 hover:underline">Giáo viên đăng nhập tại đây</Link>
           </>
         )}
       </div>
+      {/* Nút chuyển cửa đăng nhập: rõ ràng nhưng nhạt hơn nút chính để học sinh không bấm nhầm */}
+      <div className="flex items-center gap-3 pt-1 text-xs font-semibold uppercase tracking-wide text-slate-400" aria-hidden="true">
+        <span className="h-px flex-1 bg-slate-200" />hoặc<span className="h-px flex-1 bg-slate-200" />
+      </div>
+      {gv ? (
+        <Link href="/dang-nhap" className={btnClass("outline", "md", "!h-auto min-h-12 w-full !whitespace-normal !rounded-2xl py-2.5 text-center")}>
+          <GraduationCap className="h-5 w-5 shrink-0" /> Đăng nhập Học sinh
+        </Link>
+      ) : (
+        <Link href="/giao-vien" className={btnClass("outline", "md", "!h-auto min-h-12 w-full !whitespace-normal !rounded-2xl !border-navy-800 py-2.5 text-center !text-navy-800 hover:!bg-xanh-50")}>
+          <Presentation className="h-5 w-5 shrink-0" /> Đăng nhập Giáo viên
+        </Link>
+      )}
     </form>
   );
 }

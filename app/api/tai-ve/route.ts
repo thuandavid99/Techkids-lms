@@ -1,3 +1,4 @@
+import { docNop, noiThanhFile } from "@/lib/domain/bai-nop";
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getProfile, laGiaoVien } from "@/lib/auth";
@@ -50,7 +51,7 @@ export async function GET(req: NextRequest) {
     }
     if (!s.file_path) {
       // Bài nộp dạng code: trả về file văn bản
-      return new NextResponse(s.code_text ?? "", {
+      return new NextResponse(noiThanhFile(docNop(s.code_text)), {
         headers: { "content-type": "text/plain; charset=utf-8", "content-disposition": `attachment; filename*=UTF-8''${encodeURIComponent(ten.replace(/\.[^.]+$/, "") + ".py")}` },
       });
     }

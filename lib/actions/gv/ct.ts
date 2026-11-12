@@ -335,7 +335,8 @@ export async function themBuoiRieng(ctId: string, moduleId: string | null, class
 // ---------------- NHẬP PPCT TỪ EXCEL ----------------
 export interface PPCTNhap {
   cheDo: "moi" | "noi"; ten?: string; ctId?: string;
-  modules: { ten: string; buoi: { nhanBuoi: string; tieuDe: string; tomTat: string; loaiId: string | null; chuDe: string | null; taiLieu: { tieuDe: string; url: string }[] }[] }[];
+  soBaiMacDinh?: number;   // > 0: tạo bài tập nộp code (N tab) cho buổi có phiếu bài tập
+  modules: { ten: string; buoi: { nhanBuoi: string; tieuDe: string; tomTat: string; loaiId: string | null; chuDe: string | null; taoBaiTap?: boolean; taiLieu: { tieuDe: string; url: string; vaiTro?: string }[] }[] }[];
 }
 
 export async function taoTuPPCT(input: PPCTNhap): Promise<KQ> {
@@ -352,7 +353,22 @@ export async function taoTuPPCT(input: PPCTNhap): Promise<KQ> {
     const cuoi = (mcu ?? []).map((m) => m.thu_tu).sort(cmpKey).at(-1) ?? null;
     const keyM = keysBetween(cuoi, null, input.modules.length);
     const { data: cat } = await sb.from("material_categories").select("id, ten").is("deleted_at", null);
-    const catKT = (cat ?? []).find((c) => /kiến thức/i.test(c.ten))?.id ?? null;
+    const dsCat = [...(cat ?? [])] as { id: string; ten: string }[];
+    const timCat = async (re: RegExp, taoTen?: string) => {
+      const c = dsCat.find((x) => re.test(x.ten));
+      if (c || !taoTen) return c?.id ?? null;
+      const { data: moi } = chk(await sb.from("material_categories").insert({ ten: taoTen, thu_tu: 90 }).select("id, ten").single());
+      dsCat.push(moi!); return moi!.id;
+    };
+    const catKT = await timCat(/kiến thức/i);
+    const CAT: Record<string, string | null> = {
+      tai_lieu: catKT,
+      phieu: (await timCat(/phiếu/i)) ?? catKT,
+      tham_khao: (await timCat(/tham khảo/i)) ?? catKT,
+      quiz: await timCat(/quiz/i, "Quiz"),
+    };
+    const soBai = Math.max(0, Math.min(50, Math.round(Number(input.soBaiMacDinh ?? 0)) || 0));
+    let soBaiTap = 0;
     let soBuoi = 0;
     for (let i = 0; i < input.modules.length; i++) {
       const m = input.modules[i];
@@ -374,13 +390,21 @@ export async function taoTuPPCT(input: PPCTNhap): Promise<KQ> {
           tieu_de: b.tieuDe.slice(0, 200) || "(chưa có tên)", tom_tat: b.tomTat?.slice(0, 2000) || null, loai_id: b.loaiId,
         }).select("id").single());
         const tl = b.taiLieu.filter((x) => /^https?:\/\//i.test(x.url)).slice(0, 10);
-        if (tl.length) chk(await sb.from("materials").insert(tl.map((x, k) => ({ lesson_id: l!.id, loai: catKT, tieu_de: x.tieuDe.slice(0, 200), nguon: "link", url: x.url.slice(0, 2000), thu_tu: `a${k}` }))));
+        if (tl.length) chk(await sb.from("materials").insert(tl.map((x, k) => ({ lesson_id: l!.id, loai: CAT[x.vaiTro ?? "tai_lieu"] ?? catKT, tieu_de: x.tieuDe.slice(0, 200), nguon: "link", url: x.url.slice(0, 2000), thu_tu: `a${k}` }))));
+        // Bài tập nhiều tab cho buổi có phiếu: đề bài = link phiếu
+        const phieu = tl.filter((x) => x.vaiTro === "phieu");
+        if (soBai > 0 && b.taoBaiTap && phieu.length) {
+          const ma = soTrongNhan(chuanHoaNhanBuoi(b.nhanBuoi))[0];
+          const deBai = `Làm các bài trong phiếu:\n\n${phieu.map((x) => `- [${x.tieuDe.replace(/[[\]]/g, "")}](${x.url})`).join("\n")}\n\nMỗi bài làm trong một tab (Bài 1, Bài 2…), bấm **▶ Chạy** để thử, xong bấm **Nộp bài**.`;
+          chk(await sb.from("assignments").insert({ lesson_id: l!.id, ma: ma ? `${ma}.1` : "", tieu_de: phieu[0].tieuDe.slice(0, 200), de_bai: deBai, loai_nop: "code", so_bai: soBai, thu_tu: "a0" }));
+          soBaiTap++;
+        }
         soBuoi++;
       }
     }
-    await ghiNhatKy("nhap_ppct", "curricula", ct, null, { so_module: input.modules.length, so_buoi: soBuoi });
+    await ghiNhatKy("nhap_ppct", "curricula", ct, null, { so_module: input.modules.length, so_buoi: soBuoi, so_bai_tap: soBaiTap });
     xong();
-    return ok(`Đã nhập ${soBuoi} buổi, ${input.modules.length} module`, ct);
+    return ok(`Đã nhập ${soBuoi} buổi, ${input.modules.length} module${soBaiTap ? `, ${soBaiTap} bài tập` : ""}`, ct);
   });
 }
 

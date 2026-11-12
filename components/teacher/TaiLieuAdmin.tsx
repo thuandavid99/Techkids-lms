@@ -48,7 +48,7 @@ export function TaiLieuDong({ m, cats, lops, buois, chon, onChon }: { m: TLRow; 
     <li className={`flex flex-wrap items-center gap-3 py-3 ${m.hien_thi ? "" : "opacity-60"}`}>
       {onChon && <input type="checkbox" checked={!!chon} onChange={(e) => onChon(e.target.checked)} aria-label={`Chọn ${m.tieu_de}`} className="h-4 w-4" />}
       <FileIcon ten={m.ten_goc ?? m.tieu_de} nguon={m.nguon} />
-      <div className="min-w-0 flex-1">
+      <div className="hang-chu">
         <a href={`/api/tai-ve?loai=tai-lieu&id=${m.id}${m.nguon === "file" ? "&xem=1" : ""}`} target="_blank" rel="noopener noreferrer" className="font-semibold hover:text-xanh-600">{m.tieu_de}</a>
         <p className="text-xs text-slate-500">{[cats.find((c) => c.id === m.loai)?.ten, m.nguon === "link" ? m.url : m.ten_goc, kichThuocDep(m.kich_thuoc), m.lops.length ? `chỉ lớp ${m.lops.map((l) => lops.find((x) => x.id === l)?.ten).join(", ")}` : "mọi lớp"].filter(Boolean).join(" · ")}</p>
       </div>

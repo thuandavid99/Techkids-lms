@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" role="img" aria-label="Trường học">
+  <!-- Hình trường học vẽ lại (thay ảnh cắt từ mockup bị nhỏ/mờ). Màu theo hệ thống thiết kế TechKids. -->
+  <defs>
+    <linearGradient id="tuong" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#E8F1FF"/></linearGradient>
+    <linearGradient id="mai" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FB923C"/><stop offset="1" stop-color="#EA580C"/></linearGradient>
+  </defs>
+  <ellipse cx="120" cy="166" rx="104" ry="9" fill="#DCE8FF"/>
+  <!-- cây -->
+  <circle cx="30" cy="124" r="20" fill="#22C55E"/><circle cx="42" cy="110" r="15" fill="#4ADE80"/><rect x="31" y="132" width="6" height="30" rx="2" fill="#8B5A2B"/>
+  <circle cx="212" cy="126" r="18" fill="#22C55E"/><circle cx="200" cy="114" r="13" fill="#4ADE80"/><rect x="207" y="134" width="6" height="28" rx="2" fill="#8B5A2B"/>
+  <!-- nhà hai bên -->
+  <rect x="52" y="86" width="136" height="76" rx="4" fill="url(#tuong)" stroke="#1E2B5E" stroke-width="3"/>
+  <path d="M44 90 L120 56 L196 90 Z" fill="url(#mai)" stroke="#1E2B5E" stroke-width="3" stroke-linejoin="round"/>
+  <!-- tháp giữa -->
+  <rect x="96" y="60" width="48" height="102" rx="3" fill="#FFFFFF" stroke="#1E2B5E" stroke-width="3"/>
+  <path d="M90 64 L120 36 L150 64 Z" fill="url(#mai)" stroke="#1E2B5E" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="120" cy="80" r="9" fill="#FBBF24" stroke="#1E2B5E" stroke-width="2.5"/>
+  <path d="M120 74 V80 L124 83" stroke="#1E2B5E" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- cờ -->
+  <line x1="120" y1="36" x2="120" y2="12" stroke="#1E2B5E" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M121 13 L140 18 L121 24 Z" fill="#DC2626"/>
+  <!-- cửa -->
+  <path d="M108 162 V128 a12 12 0 0 1 24 0 V162 Z" fill="#2563EB" stroke="#1E2B5E" stroke-width="3"/>
+  <line x1="120" y1="117" x2="120" y2="162" stroke="#1E2B5E" stroke-width="2"/>
+  <!-- cửa sổ -->
+  <g fill="#BFDBFE" stroke="#1E2B5E" stroke-width="2.5">
+    <rect x="62" y="100" width="22" height="18" rx="3"/><rect x="62" y="130" width="22" height="18" rx="3"/>
+    <rect x="156" y="100" width="22" height="18" rx="3"/><rect x="156" y="130" width="22" height="18" rx="3"/>
+    <rect x="106" y="96" width="28" height="14" rx="3"/>
+  </g>
+  <!-- chữ code trên bảng hiệu -->
+  <text x="120" y="107" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="10" font-weight="700" fill="#1E2B5E">&lt;/&gt;</text>
+</svg>

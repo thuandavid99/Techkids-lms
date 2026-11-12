@@ -59,8 +59,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
                 return (
                   <div key={r.assignment_id} className="rounded-2xl border border-vien bg-white p-4">
                     <div className="flex flex-wrap items-center gap-4">
-                      <span className="rounded-xl bg-xanh-50 p-3 text-navy-800"><ClipboardList className="h-7 w-7" /></span>
-                      <div className="min-w-0 flex-1">
+                      <span className="hidden rounded-xl bg-xanh-50 p-3 text-navy-800 sm:inline-flex"><ClipboardList className="h-7 w-7" /></span>
+                      <div className="hang-chu">
                         <p className="text-lg font-bold">{tenBaiTap(r.ma, r.tieu_de)} {!r.bat_buoc && <span className="text-sm font-medium text-slate-500">(tùy chọn)</span>}</p>
                         <div className="flex flex-wrap items-center gap-2 text-sm text-slate-700">
                           <span>Hạn nộp: {k.hanHieuLuc ? fmtDate(k.hanHieuLuc) : "—"}</span>

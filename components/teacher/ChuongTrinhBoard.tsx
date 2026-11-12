@@ -119,7 +119,7 @@ function LessonRow({ item, ctId, run }: { item: Extract<Item, { kind: "l" }>; ct
       </div>
       <span className="hidden font-extrabold md:block">{b.nhan || "—"}</span>
       <div className="hidden min-w-0 md:block">
-        <p className="truncate font-semibold" title={b.ten}>{b.ten}</p>
+        <p className="line-clamp-2 font-semibold" title={b.ten}>{b.ten}</p>
         {(b.chuDe || b.rieng) && <p className="truncate text-xs text-slate-500">{b.chuDe && `Chủ đề: ${b.chuDe}`}{b.rieng && ` · Riêng lớp ${b.rieng}`}</p>}
       </div>
       <p className="hidden line-clamp-2 text-sm text-slate-600 md:block" title={b.tomTat}>{b.tomTat}</p>

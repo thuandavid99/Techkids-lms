@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { phanTichPPCT, doanGhepCot, timDongTieuDe, type DongExcel, type LoaiBuoiNhanDien } from "@/lib/domain/ppct";
+import { phanTichPPCT, doanGhepCot, doanGhepCotDayDu, timDongTieuDe, type DongExcel, type LoaiBuoiNhanDien } from "@/lib/domain/ppct";
 
 const LOAI: LoaiBuoiNhanDien[] = [
   { id: "lt", ten: "Lý thuyết", tu_khoa: "lý thuyết", noi_bat: false },
@@ -63,7 +63,7 @@ describe("Nhập PPCT từ Excel (mục 6.4)", () => {
   });
 
   it("hyperlink trong ô và link trong chữ → tài liệu dạng link", () => {
-    expect(kq.modules[0].buoi[0].taiLieu).toEqual([{ tieuDe: "Slide 1", url: "https://drive.google.com/file/d/abc" }]);
+    expect(kq.modules[0].buoi[0].taiLieu).toEqual([{ tieuDe: "Slide 1", url: "https://drive.google.com/file/d/abc", vaiTro: "tai_lieu" }]);
     expect(kq.modules[1].buoi[3].taiLieu[0].url).toBe("https://example.com/on-tap");
   });
 
@@ -74,5 +74,63 @@ describe("Nhập PPCT từ Excel (mục 6.4)", () => {
     expect(text).toMatch(/Thiếu buổi 12/);
     expect(text).toMatch(/Link không hợp lệ/);
     expect(kq.tongBuoi).toBe(12);
+  });
+});
+
+// Bảng giống file "Phân phối chương trình Python" thật của thầy (12/11/2026):
+// cột "Tài liệu lý thuyết" thực ra ghi LOẠI buổi; số buổi có chỗ gõ "10.11", có chỗ đánh trùng/lệch;
+// cả bảng tô nền cam nhạt, chỉ dòng Kiểm tra tô cam đậm; link Quiz / phiếu bài tập ở các cột riêng.
+describe("PPCT thật: đoán cột theo dữ liệu, đánh số lại, màu hiếm, link quiz/phiếu", () => {
+  let n = 0;
+  const NHAT = "FFFCE5CD", DAM = "FFFF9900";
+  const r = (o: string[], link: (string | null)[] = [], mau: string[] = [NHAT]): DongExcel => ({ dong: ++n, o, link, toMau: true, mau });
+  const LOAI2: LoaiBuoiNhanDien[] = [...LOAI, { id: "ltth", ten: "Lý thuyết + thực hành", tu_khoa: "thực hành", noi_bat: false }];
+  const RO = [
+    r(["", "Phần", "Buổi", "Bài", "Nội dung", "Tài liệu lý thuyết", "Quizzi", "Bài tập", "Tham khảo"], [], []),
+    r(["", "", "1", "1. Hello word", "- Giới thiệu", "Lý thuyết", "https://quizizz.com/admin/quiz/1", "https://docs.google.com/d/1"], [null, null, null, null, null, null, "https://quizizz.com/admin/quiz/1", "https://docs.google.com/d/1"]),
+    r(["", "", "2", "Biến", "- Khái niệm biến", "Lý thuyết", "", "Phieu_hoc_tap_Bien.docx"], [null, null, null, null, null, null, null, "https://docs.google.com/d/2"]),
+    r(["", "", "3", "Rẽ nhánh", "Bài tập", "Bài tập", "", ""]),
+    r(["", "", "10.11", "Ôn tập module 1", "", "Bài tập", "", ""]),
+    r(["", "", "12", "Kiểm tra module 1", "", "", "", ""], [], [DAM]),
+    r(["", "", "13", "Vòng lặp for", "", "Lý thuyết + thực hành", "", ""]),
+    r(["", "", "13", "Vòng lặp while", "", "Lý thuyết", "", ""]),
+    r(["", "", "43, 44", "CaseStudy", "", "Casestudy", "", ""]),
+    r(["", "", "40", "Contest Tổng kết khoá học", "Kiểm tra đánh giá tổng hợp", "", "", ""], [], [DAM]),
+  ];
+  const hd = timDongTieuDe(RO);
+  const ghep = doanGhepCotDayDu(RO, hd, LOAI2);
+  const chay = (danhSoLai: boolean) => phanTichPPCT(RO, ghep, LOAI2, { batDauTuDong: hd + 1, macDinhLoaiId: "lt", danhSoLai, tieuDeCot: RO[hd].o });
+
+  it("cột 'Tài liệu lý thuyết' chứa tên loại buổi → nhận là cột Loại", () => {
+    expect(ghep).toEqual({ buoi: 2, bai: 3, noiDung: 4, taiLieu: -1, loai: 5 });
+  });
+  it("10.11 → 10–11; bỏ số thứ tự đầu tên bài; Casestudy ≈ Case study", () => {
+    const b = chay(false).modules.flatMap((m) => m.buoi);
+    expect(b[3].nhanBuoi).toBe("10–11");
+    expect(b[0].tieuDe).toBe("Hello word");
+    expect(b[7].loaiTen).toBe("Case study");
+    expect(b[8].loaiTen).toBe("Contest"); // từ khóa trong TÊN BÀI được ưu tiên hơn nội dung
+  });
+  it("màu cam đậm hiếm → ranh giới module; cam nhạt cả bảng bị bỏ qua", () => {
+    const kq = chay(false);
+    expect(kq.modules.map((m) => m.buoi.length)).toEqual([5, 4]);
+    expect(kq.modules[0].buoi[4].noiBat).toBe(true);
+    expect(kq.modules[0].buoi[0].noiBat).toBe(false);
+  });
+  it("phát hiện số buổi lệch; đánh số lại theo thứ tự dòng, buổi gộp chiếm 2 số", () => {
+    expect(chay(false).lechSo).toBe(true);
+    const b = chay(true).modules.flatMap((m) => m.buoi);
+    expect(b.map((x) => x.nhanBuoi)).toEqual(["1", "2", "3", "4–5", "6", "7", "8", "9–10", "11"]);
+    expect(b[8].nhanGoc).toBe("40");
+  });
+  it("link theo cột: Quiz → nút Làm Quiz, cột Bài tập → phiếu (tạo bài tập), tên file đẹp", () => {
+    const b = chay(true).modules[0].buoi;
+    expect(b[0].taiLieu).toEqual([
+      { tieuDe: "Làm Quiz", url: "https://quizizz.com/admin/quiz/1", vaiTro: "quiz" },
+      { tieuDe: "Phiếu bài tập", url: "https://docs.google.com/d/1", vaiTro: "phieu" },
+    ]);
+    expect(b[1].taiLieu).toEqual([{ tieuDe: "Phieu hoc tap Bien", url: "https://docs.google.com/d/2", vaiTro: "phieu" }]);
+    expect(b[0].taoBaiTap).toBe(true);
+    expect(b[2].taoBaiTap).toBe(false);
   });
 });

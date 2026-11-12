@@ -9,7 +9,7 @@ import { luuBaiTap, datHanNop } from "@/lib/actions/gv/bt";
 
 export interface BaiTapVals {
   id: string; ma: string; tieu_de: string; de_bai: string; diem_toi_da: number; loai_nop: string; cho_nop_tre: boolean;
-  khoa_nop: boolean; tinh_diem: boolean; bat_buoc: boolean; he_so: number; hoc_ky: number; hien_thi: boolean;
+  khoa_nop: boolean; tinh_diem: boolean; bat_buoc: boolean; he_so: number; hoc_ky: number; hien_thi: boolean; so_bai: number;
 }
 
 /** Form soạn bài tập; hỏi "Tất cả lớp / Chỉ lớp này" khi chương trình dùng cho nhiều lớp (mục 2.2) */
@@ -50,6 +50,13 @@ export function BaiTapForm({ v, lops, soBaiNop, banRieng, suaChung = true }: { v
         <div><label className="label" htmlFor="dm">Điểm tối đa</label><input id="dm" name="diem_toi_da" type="number" step="0.5" min="1" max="100" defaultValue={cur.diem_toi_da} className="input" /></div>
         <div><label className="label" htmlFor="hs">Hệ số</label><input id="hs" name="he_so" type="number" step="0.5" min="0.5" max="10" defaultValue={cur.he_so} className="input" /></div>
         <div><label className="label" htmlFor="hk">Học kỳ</label><select id="hk" name="hoc_ky" defaultValue={cur.hoc_ky} className="input"><option value="1">Học kỳ 1</option><option value="2">Học kỳ 2</option></select></div>
+      </div>
+      <div className="rounded-2xl border border-vien bg-xanh-50/50 p-3">
+        <label className="label" htmlFor="sb">Số bài nhỏ trong phiếu (số tab code)</label>
+        <div className="flex flex-wrap items-center gap-3">
+          <input id="sb" name="so_bai" type="number" min="1" max="50" step="1" defaultValue={cur.so_bai ?? 1} className="input !w-28" />
+          <p className="hang-chu text-sm text-slate-600">1 = bài thường (một ô code). Ví dụ phiếu có 10 bài → nhập <b>10</b>: học sinh làm trong 10 tab <i>Bài 1…Bài 10</i>, nộp một lần; thầy chấm ✓/✗ từng bài, web gợi ý điểm.</p>
+        </div>
       </div>
       <div className="flex flex-wrap gap-x-6 gap-y-2">
         <Chk n="bat_buoc" l="Bắt buộc (bỏ tích = tùy chọn)" d={cur.bat_buoc} />

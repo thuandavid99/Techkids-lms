@@ -5,6 +5,7 @@ import { Card, PageGrid, BrandCard } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/States";
 import { HanhTrinhCard, SapDenHanCard } from "@/components/student/Cards";
 import { BuoiHocList, type ModuleItem } from "@/components/student/BuoiHocList";
+import { BuoiSapMo, type BuoiKhoa } from "@/components/student/BuoiSapMo";
 import { hanhTrinh } from "@/lib/domain/stats";
 import { trangThaiBuoi, baiCanLamGanNhat } from "@/lib/domain/lesson-status";
 import { tinhTrangThai } from "@/lib/domain/status";
@@ -17,7 +18,8 @@ export default async function Page() {
   const p = await requireStudent();
   const { sb, buoi, dong, loai, modules } = await duLieuHs(p);
   const now = new Date();
-  const topics = new Map((await topicsCua(sb, modules.map((m) => m.id))).map((t) => [t.id, t.ten]));
+  const [tps, { data: sapMo }] = await Promise.all([topicsCua(sb, modules.map((m) => m.id)), sb.rpc("hs_buoi_sap_mo", { p_so: 2 })]);
+  const topics = new Map<string, string>(tps.map((t: { id: string; ten: string }) => [t.id, t.ten] as [string, string]));
 
   const nhom: ModuleItem[] = [...modules.map((m) => ({ id: m.id, ten: m.ten, buoi: [] as ModuleItem["buoi"] })), { id: "khac", ten: "Buổi học khác", buoi: [] }];
   for (const b of buoi) {
@@ -39,6 +41,7 @@ export default async function Page() {
         {buoi.length === 0
           ? <Card><EmptyState title="Chưa có buổi học nào" hint="Thầy sẽ mở buổi học khi đến ngày học. Em quay lại sau nhé!" /></Card>
           : <BuoiHocList modules={nhom.filter((m) => m.buoi.length > 0)} />}
+        <BuoiSapMo ds={(sapMo as BuoiKhoa[] | null) ?? []} />
       </>}
       aside={<>
         <HanhTrinhCard {...hanhTrinh(buoi, dong, now)} />

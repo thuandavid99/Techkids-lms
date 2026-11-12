@@ -49,7 +49,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
           <ul className="divide-y divide-vien rounded-2xl border border-vien bg-white">
             {choCham.map((r) => (
               <li key={r.submission_id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-                <div className="min-w-0 flex-1 text-[0.95rem]">{cumTen(r)} · {fmtShort(r.nop_luc_moi_nhat)}</div>
+                <div className="hang-chu text-[0.95rem]">{cumTen(r)} · {fmtShort(r.nop_luc_moi_nhat)}</div>
                 <NhanBai kq={tinhTrangThai(r, now)} />
                 <ButtonLink href={`/gv/bai-tap/cham/${r.submission_id}${lop ? `?lop=${lop}` : ""}`} size="sm">Chấm</ButtonLink>
               </li>
@@ -59,7 +59,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
           <ul className="divide-y divide-vien rounded-2xl border border-vien bg-white">
             {canHoTro.map((r) => (
               <li key={`${r.student_id}:${r.assignment_id}`} className="flex flex-wrap items-center gap-3 px-4 py-3">
-                <div className="min-w-0 flex-1 text-[0.95rem]">
+                <div className="hang-chu text-[0.95rem]">
                   {cumTen(r)} · báo lúc {fmtShort(r.danh_dau_luc)}
                   {r.ghi_chu_co && <p className="mt-1 rounded-lg bg-tim-50 px-2 py-1 text-sm text-tim-500">“{r.ghi_chu_co}”</p>}
                 </div>

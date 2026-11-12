@@ -7,6 +7,8 @@ import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { luuDiem } from "@/lib/actions/gv/cham";
 import { toVNInput } from "@/lib/domain/time";
+import { goiYDiem } from "@/lib/domain/bai-nop";
+import { useChamTabs } from "@/components/shared/XemBaiNop";
 
 /** Khối "Đánh giá & Chấm điểm" (phải màn chấm bài) */
 export function GradeForm({ submissionId, diem0, nhanXet0, diemToiDa, moc, daCham, mauNhanXet, nextHref, soCho, choPhep }: {
@@ -22,11 +24,13 @@ export function GradeForm({ submissionId, diem0, nhanXet0, diemToiDa, moc, daCha
   const [pending, start] = useTransition();
   const toast = useToast();
   const router = useRouter();
+  const chamTabs = useChamTabs(); // phiếu nhiều bài: kết quả ✓/✗ từng bài
+  const goiY = chamTabs ? goiYDiem(chamTabs.ket, diemToiDa) : null;
 
   const gui = (hanhDong: "cham" | "can_nop_lai" | "mo_nop_lai", sauDo: "next" | "stay", ep = false) => start(async () => {
     const d = diem.trim() === "" ? null : Number(diem.replace(",", "."));
     if (hanhDong === "cham" && (d === null || Number.isNaN(d))) { toast("Thầy nhập điểm trước nhé.", "loi"); return; }
-    const kq = await luuDiem({ submissionId, diem: d, nhanXet: nx, hanhDong, moc, ep, hanNopLai: hanhDong === "cham" ? null : hanLai });
+    const kq = await luuDiem({ submissionId, diem: d, nhanXet: nx, hanhDong, moc, ep, hanNopLai: hanhDong === "cham" ? null : hanLai, chamTabs: chamTabs?.ket ?? null });
     if (!kq.ok && (kq.data as { xungDot?: boolean } | undefined)?.xungDot) { setXungDot(() => () => gui(hanhDong, sauDo, true)); return; }
     if (!kq.ok) { toast(kq.loi!, "loi"); return; }
     toast(kq.tb!);
@@ -44,6 +48,16 @@ export function GradeForm({ submissionId, diem0, nhanXet0, diemToiDa, moc, daCha
     <div className="card card-pad space-y-4">
       <h2 className="text-2xl font-extrabold">Đánh giá &amp; Chấm điểm</h2>
       {!choPhep && <p className="rounded-xl bg-slate-100 px-3 py-2 text-sm">Học sinh chưa có bài nộp (hoặc nộp ngoài hệ thống). Thầy vẫn có thể nhập điểm.</p>}
+      {chamTabs && (
+        <div className="rounded-2xl bg-xanh-50 px-3 py-2.5 text-sm">
+          <p>Đã chấm <b>{chamTabs.ket.filter(Boolean).length}/{chamTabs.ket.length}</b> bài: <b className="text-la-600">{chamTabs.ket.filter((x) => x === "d").length} đúng</b>, <b className="text-do-600">{chamTabs.ket.filter((x) => x === "s").length} sai</b>.</p>
+          {goiY !== null && (
+            <p className="mt-1 flex flex-wrap items-center gap-2">Gợi ý điểm: <b className="text-lg">{goiY.toFixed(1)}</b>
+              <button type="button" onClick={() => setDiem(String(goiY))} className="rounded-full bg-xanh-600 px-3 py-1 text-xs font-bold text-white hover:bg-xanh-700">Dùng điểm này</button></p>
+          )}
+          <p className="mt-1 text-xs text-slate-500">Bấm ✓ Đúng / ✗ Sai ở từng bài bên trái. Thầy vẫn sửa điểm tùy ý.</p>
+        </div>
+      )}
       <div className="flex items-center gap-3">
         <label htmlFor="diem" className="text-lg">Điểm số (trên {diemToiDa}):</label>
         <input id="diem" inputMode="decimal" value={diem} onChange={(e) => setDiem(e.target.value)} className="input !w-24 text-center text-lg font-bold" />

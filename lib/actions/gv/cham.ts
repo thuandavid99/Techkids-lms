@@ -14,7 +14,7 @@ import type { KQ } from "@/lib/types";
  */
 export async function luuDiem(input: {
   submissionId: string; diem: number | null; nhanXet: string; hanhDong: "cham" | "can_nop_lai" | "mo_nop_lai";
-  moc: string | null; ep?: boolean; hanNopLai?: string | null;
+  moc: string | null; ep?: boolean; hanNopLai?: string | null; chamTabs?: (string | null)[] | null;
 }): Promise<KQ> {
   return chay(async (sb) => {
     const { data, error } = await sb.rpc("gv_luu_diem", {
@@ -25,6 +25,11 @@ export async function luuDiem(input: {
     const kq = data as { ok: boolean; loi?: string; xung_dot?: boolean; nop_luc_moi_nhat?: string };
     if (kq.xung_dot) return { ok: false, loi: "Học sinh vừa nộp bản mới hơn.", data: { xungDot: true }, ts: Date.now() };
     if (!kq.ok) return loi(kq.loi ?? "Chưa lưu được.");
+    // Phiếu nhiều bài: lưu kết quả ✓/✗ từng bài (học sinh xem lại được bài nào chưa đúng)
+    if (Array.isArray(input.chamTabs) && input.hanhDong !== "mo_nop_lai") {
+      const ket = input.chamTabs.slice(0, 50).map((x) => (x === "d" || x === "s" ? x : null));
+      chk(await sb.from("submissions").update({ cham_tabs: ket }).eq("id", uuid(input.submissionId)));
+    }
     revalidatePath("/gv", "layout");
     return ok(input.hanhDong === "cham" ? "Đã lưu điểm" : "Đã yêu cầu nộp lại");
   });

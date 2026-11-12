@@ -23,7 +23,7 @@ export function Skeleton({ className = "" }: { className?: string }) {
 /** Khung xương khi đang tải trang */
 export function PageSkeleton() {
   return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]" aria-busy="true" aria-label="Đang tải">
+    <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]" aria-busy="true" aria-label="Đang tải">
       <div className="space-y-4">
         <Skeleton className="h-10 w-72" />
         <div className="card card-pad space-y-3">

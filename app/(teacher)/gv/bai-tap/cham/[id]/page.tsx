@@ -4,14 +4,13 @@ import { Download, Eye } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { IMG } from "@/lib/brand";
 import { PageHeader } from "@/components/ui/Card";
-import { CodeView } from "@/components/ui/CodeView";
-import { PythonRunner } from "@/components/student/PythonRunner";
+import { XemBaiNop, ChamTabsProvider } from "@/components/shared/XemBaiNop";
 import { Markdown } from "@/components/ui/Markdown";
 import { NhanBai } from "@/components/ui/Pill";
 import { btnClass } from "@/components/ui/Button";
 import { GradeForm } from "@/components/teacher/GradeForm";
 import { tinhTrangThai } from "@/lib/domain/status";
-import { toDongBai } from "@/lib/server/data";
+import { toDongBai, soBaiCua } from "@/lib/server/data";
 import { tenBaiTap } from "@/lib/domain/naming";
 import { fmtDateTime } from "@/lib/domain/time";
 import { xemTrucTuyenDuoc } from "@/lib/domain/files";
@@ -32,8 +31,9 @@ export default async function Page({ params, searchParams }: { params: Promise<{
     sb.from("submissions").select("id, nop_luc_moi_nhat, profiles!inner(class_id)").eq("trang_thai", "da_nop").order("nop_luc_moi_nhat"),
     sb.from("profiles").select("ho_ten, ma_hs, class_id, classes!profiles_class_id_fkey(ten_lop)").eq("id", s.student_id).maybeSingle(),
   ]);
-  const { data: bt } = await sb.from("v_bai_tap_hieu_luc").select("ma, tieu_de, de_bai, diem_toi_da").eq("assignment_id", s.assignment_id).eq("class_id", hs?.class_id ?? "").maybeSingle();
+  const { data: bt } = await sb.from("v_bai_tap_hieu_luc").select("ma, tieu_de, de_bai, diem_toi_da, override_id").eq("assignment_id", s.assignment_id).eq("class_id", hs?.class_id ?? "").maybeSingle();
   const r = row ? toDongBai(row as DongBaiHs) : null;
+  const soBai = await soBaiCua(sb, s.assignment_id, (bt as { override_id?: string | null } | null)?.override_id ?? null, hs?.class_id ?? null);
   const kq = r ? tinhTrangThai(r, new Date()) : null;
 
   // Bài tiếp theo trong hàng đợi (cùng lớp nếu đang lọc)
@@ -45,7 +45,8 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   const laAnh = s.file_path && /^image\//.test(s.mime ?? "");
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+    <ChamTabsProvider soBai={soBai} ban0={s.cham_tabs}>
+    <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
       <div className="card card-pad min-w-0 space-y-4">
         <PageHeader back={{ href: lop ? `/gv/lop/${lop}` : "/gv/bai-tap/hang-doi", label: lop ? "Quay lại ma trận" : "Quay lại hàng đợi" }}
           title={`Chấm bài: ${bt ? tenBaiTap(bt.ma, bt.tieu_de) : ""}`} />
@@ -60,14 +61,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
         {r?.chua_lam_duoc && <p className="rounded-xl bg-tim-50 px-3 py-2 text-sm text-tim-500">🙋 Em báo chưa làm được{r.ghi_chu_co ? `: “${r.ghi_chu_co}”` : ""}</p>}
 
         {s.code_text !== null && s.code_text !== undefined ? (
-          <>
-            <CodeView code={s.code_text} />
-            {/* Thầy chạy thử code của em ngay trên trình duyệt của thầy (không chạy trên server) */}
-            <details className="rounded-2xl border border-vien bg-white">
-              <summary className="cursor-pointer px-4 py-3 font-semibold text-xanh-700">▶ Chạy thử bài của em</summary>
-              <div className="px-3 pb-3"><PythonRunner code={s.code_text} chieuCao={300} /></div>
-            </details>
-          </>
+          <XemBaiNop codeText={s.code_text} soBai={soBai} cheDo="thay" minH={320} />
         ) : s.file_path ? (
           <div className="rounded-2xl border border-vien bg-white p-4">
             <p className="font-semibold">📎 {s.ten_goc}</p>
@@ -92,5 +86,6 @@ export default async function Page({ params, searchParams }: { params: Promise<{
         </div>
       </aside>
     </div>
+    </ChamTabsProvider>
   );
 }

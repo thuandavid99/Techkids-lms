@@ -12,11 +12,11 @@ export function MaterialRow({ m, phanLoai, moi = false }: { m: TaiLieu; phanLoai
   return (
     <div className="flex flex-wrap items-center gap-3 border-b border-[#eef3fb] py-3 last:border-0">
       <FileIcon ten={m.ten_goc ?? m.tieu_de} nguon={m.nguon} />
-      <div className="min-w-0 flex-1">
+      <div className="hang-chu">
         <p className="font-semibold">{m.tieu_de} {moi && <Pill mau="green" className="ml-1">Mới</Pill>}</p>
         <p className="text-xs text-slate-500">{[phanLoai, m.nguon === "link" ? "Liên kết" : m.ten_goc, kichThuocDep(m.kich_thuoc)].filter(Boolean).join(" · ")}</p>
       </div>
-      <div className="flex gap-2">
+      <div className="flex shrink-0 gap-2">
         {m.nguon === "link" ? (
           <a href={href} target="_blank" rel="noopener noreferrer" className={btnClass("outline", "sm")}><ExternalLink className="h-4 w-4" /> Mở link</a>
         ) : (

@@ -7,7 +7,7 @@
 >
 > **Quy ước trả lời:** tiếng Việt, ngắn gọn, hướng dẫn từng bước bấm nút ở đâu (người dùng là giáo viên Tin học, không phải lập trình viên chuyên nghiệp). Không tự ý chạy `npm audit fix --force`.
 
-**Cập nhật lần cuối:** 07/11/2026 (chat 3).
+**Cập nhật lần cuối:** 12/11/2026 (chat 4 — sửa chữ tràn; mở buổi bằng nút gạt; bài tập nhiều tab; nhập PPCT thật; làm lại hình; tối ưu gói miễn phí).
 **Tình trạng:** Mã GĐ0–GĐ9 đã viết xong. **GĐ9 (chat 3) xong:** phân loại tài khoản Quản trị/Giáo viên + giao diện giáo viên riêng, tăng tốc chuyển trang, **chạy code Python ngay trên trình duyệt kiểu W3Schools**. Thầy cần: chạy `005_giao_vien_rieng.sql`, nâng gói (6.1), `npm run build`, đẩy GitHub/Vercel (vùng Singapore).
 
 ---
@@ -144,7 +144,26 @@ Câu hỏi 7.6 cũ → đã dùng mặc định: GV **không** sửa PPCT chung;
 - Thông báo "sắp đến hạn" vẫn sinh khi HS mở web (chưa `pg_cron`).
 - Chạy thử chưa hỗ trợ `input()` kiểu hỏi-đáp từng bước (dùng ô Dữ liệu vào như các trang luyện thi); chưa chấm tự động bằng test case.
 
+## 7b. Chat 4 — SỬA CHỮ TRÀN (✅ 12/11)
+Kiểm tra tự động 47 trang × 5 cỡ màn (360, 390, 768, 1024, 1440 px) bằng dữ liệu “khó” (tên HS dài, tên lớp dài, tên file/URL không dấu cách). Trước: 94 lượt trang bị cuộn ngang, 225 phần tử tràn. Sau: **0 / 0**.
+- Quy tắc chung (`app/globals.css`): `body` tự ngắt từ quá dài; `.input` không rộng quá khung (ô chọn chữ dài tự “…”); `.h-page` nhỏ hơn trên điện thoại (1.5rem); lớp mới **`.hang-chu`** (khối chữ trong hàng “chữ + nút”: tối thiểu 14rem, hết chỗ thì nút xuống dòng) và **`.chu-dai`** (tên file/link ngắt ở bất kỳ đâu).
+- Bố cục 2 cột (`PageGrid`, `LamBai`, `States`, chấm bài, chi tiết buổi, xem thử): thêm `grid-cols-1` + `min-w-0` — trước đây 1 tên file dài làm cả trang rộng ra.
+- Thanh trên cùng (`Topbar` + 2 layout): ô chọn lớp/tên lớp tự rút gọn, chuông + ảnh đại diện không bị đẩy ra ngoài; ẩn mũi tên nhỏ trên điện thoại; menu người dùng hiện họ tên đầy đủ.
+- Hàng danh sách dùng `.hang-chu`: Bài tập (HS), Tài liệu (HS + kho GV), Hàng đợi chấm; thông báo/ghi chú/thông báo lớp dùng `.chu-dai`.
+- Tiêu đề buổi có icon: icon nhỏ (44px) trên điện thoại. 4 ô nhanh ở trang chủ HS gọn hơn trên điện thoại. Bộ lọc ở Ma trận/Tình hình nộp co theo màn hình. Tên buổi ở bảng Chương trình hiện 2 dòng thay vì cắt “…”. Gợi ý “Ctrl + Enter” ẩn trên điện thoại.
+- Chưa kiểm được trên font thật Be Vietnam Pro (máy dựng dùng Inter, hơi hẹp hơn) — thầy xem lại trên điện thoại thật.
+
+## 7c. Chat 4 (tiếp) — 6 việc thầy duyệt (✅ 12/11) — **cần chạy `supabase/006_mo_buoi_nhieu_bai.sql`**
+1. **Mở buổi bằng nút gạt:** (sau góp ý 12/11: gộp vào **thẻ từng lớp** ở Tổng quan — `MoBuoiLop`; ⚙ chứa Cách mở / Mở-khóa buổi khác / Khóa các buổi chưa dạy; không có lịch hôm nay thì hiện *buổi đang học* + *buổi chưa mở đầu tiên*) (`components/teacher/MoBuoiHomNay.tsx`, chọn buổi bằng `lib/domain/mo-buoi.ts`): mỗi lớp có công tắc *Buổi hôm nay / Buổi sẽ dạy tới* + *Buổi tiếp theo*, chọn "Cách mở": **Thầy tự gạt mở** (mặc định) / **Tự mở theo lịch học** (cột `classes.che_do_mo`, hàm `mo_buoi_theo_lich` chạy khi HS/GV mở web). Nút "Khóa các buổi chưa dạy" (dùng 1 lần cho lớp cũ). `class_lessons.hien_thi` mặc định = false (buổi mới gắn vào lớp sẽ khóa). HS thấy 1–2 buổi sắp tới **mờ có 🔒** (hàm `hs_buoi_sap_mo`, chỉ lộ tên + ngày) ở Trang chủ và Danh sách buổi (`components/student/BuoiSapMo.tsx`).
+2. **Bài tập nhiều tab:** cột `assignments.so_bai` (1–50; ô "Số bài nhỏ trong phiếu" ở Soạn bài tập). HS làm trong tab Bài 1…N, mỗi tab ▶ Chạy riêng, nộp 1 lần, web ghi "đã làm x/N". Nội dung lưu trong `code_text` dạng JSON `{"lms":1,"tabs":[…],"link":…}` (bài 1 tab vẫn là code thuần — tương thích dữ liệu cũ) — đọc/ghi qua `lib/domain/bai-nop.ts`. Thầy chấm ✓/✗ từng tab (`components/shared/XemBaiNop.tsx` + `ChamTabsProvider`), GradeForm gợi ý điểm = số đúng/tổng × điểm tối đa ("Dùng điểm này"), lưu `submissions.cham_tabs`; HS xem lại tab nào đúng/sai. File tải về nối các tab có tiêu đề "# ===== Bài i =====".
+3. **Nhập PPCT thật** (`lib/domain/ppct.ts`): đoán cột theo DỮ LIỆU (cột "Tài liệu lý thuyết" của thầy thực ra là cột Loại buổi), số buổi kiểu Excel (12.0 → 12; 10.11 → 10–11), bỏ "1. " đầu tên bài, "Casestudy" ≈ "Case study", màu nền **hiếm** (cam đậm) = ranh giới module (cam nhạt tô cả bảng bị bỏ qua), tùy chọn **đánh số lại buổi theo thứ tự dòng** (file thầy có buổi trùng/lệch: 35,37,38,39,36 / 37–39 lặp / 40 ở cuối → thành 1…47). Link theo cột: Quizzi → **nút tím "Làm Quiz"** trong buổi (`laLinkQuiz`), Bài tập → phiếu (phân loại "Phiếu học tập") + **tự tạo bài tập nộp code N tab** (mặc định 10, đề bài = link phiếu), Tham khảo → "Tham khảo". Excel đọc thêm màu từng ô (`lib/server/excel.ts` → `mau`). Thử trên file thật: 44 dòng → 4 module, 47 buổi, đúng như dự kiến.
+4. **Hình ảnh:** 13 hình robot tách nền trong suốt, xóa đường kẻ/mảnh thừa (dấu "!" ở banner), làm mờ mép bị cắt, nén **WebP** (3,8 MB → ~0,4 MB); logo tròn ở menu; trường học vẽ lại `public/images/school.svg`; "robot cầm bảng" (bảng bị mất) → dùng robot cầm bảng kẹp. Script: tách nền bằng flood-fill từ mép (OpenCV) — không có trong repo. Trang đăng nhập: nút viền **"Đăng nhập Giáo viên"** / **"Đăng nhập Học sinh"** thay dòng chữ nhỏ.
+5. **Nộp bài:** chỉ code (soạn / file .py đọc thành chữ, nạp vào tab đang mở) / **Dán link** (Google Docs/Drive…) / Word-PDF ≤ 2 MB cho bài "nộp file"; **bỏ nộp ảnh** (`lib/domain/files.ts`).
+6. **Tối ưu gói miễn phí:** việc "tạo thông báo tự động" chỉ chạy 15 phút/lần (cookie `lms_tb` do `proxy.ts` đặt); `/api/song` + `.github/workflows/giu-web-thuc.yml` gọi DB mỗi ngày để Supabase không tạm dừng (cần biến `SITE_URL` trong GitHub); Cài đặt (quản trị) → **Tải file sao lưu (.xlsx)** (`/api/gv/xuat?loai=sao-luu`: HS + bài nộp kèm code + điểm + nhận xét).
+**Đã kiểm:** SQL 001→006 (+ chạy lại 005/006) trên PostgreSQL 16: **26/26** kiểm thử RLS (thêm 22–24); **75/75** kiểm thử logic (thêm `mo-buoi`, `bai-nop`, PPCT thật); hiển thị 47 trang × 5 cỡ màn: 0 trang cuộn ngang. **12/11: `npm run build` trên máy thầy THÀNH CÔNG** (Next 16.4.5, 0 lỗi TypeScript, 39 trang). Chưa: chạy với Supabase thật.
+
 ## 8. VIỆC TIẾP THEO CHO CLAUDE (thứ tự ưu tiên)
+0. **8.0** Thầy chạy `006_mo_buoi_nhieu_bai.sql`, chép mã mới, `npm run build`; nhập lại PPCT bằng file thật (bật "Đánh số lại"), đặt biến `SITE_URL` cho GitHub Actions. Nhận lỗi build (nếu có) → sửa.
 1. **8.1** Nhận kết quả `npm run build` từ thầy → sửa lỗi build/type/lint cho sạch (lần build thật đầu tiên). Kiểm tra `npm test` (vitest thật).
 2. **8.2** Hỗ trợ chạy 005, đẩy GitHub/Vercel (vùng sin1); xử lý lỗi Build Logs.
 3. **8.3** Thử thật: `/giao-vien`, menu Giáo viên, nút ▶ Chạy (nếu Pyodide v0.28.0 lỗi tải → đổi `PYODIDE_URL`). Theo `docs/kiem-thu-thu-cong.md` mục H, I, J.
@@ -176,3 +195,7 @@ docs/              so-do-du-lieu, kiem-thu-thu-cong, doi-chieu-spec, mockups/
 - 06/11 chat 2: kiểm thử lại SQL/RLS/logic; GĐ7–8 (README, docs, 8 SVG, zip); sửa "Bỏ qua bài này"; nhận cả tên biến PUBLISHABLE_KEY; hướng dẫn chạy local, tạo GV trên Supabase, vá Next.js, GitHub/Vercel; **thêm đặc tả GĐ9 giao diện giáo viên riêng**.
 - 07/11 chat 3: GĐ9 — phân loại tài khoản Quản trị/Giáo viên (SQL 005 + 8 test RLS), cửa đăng nhập `/giao-vien`, màn quản lý giáo viên, menu theo vai trò; tăng tốc (getClaims, vùng sin1, khung tải, thanh tiến trình); chạy code Python trên trình duyệt kiểu W3Schools (Pyodide); 3 SVG mockup mới; cập nhật README/docs.
 - 07/11 chat 3 (bổ sung): trang `/giao-vien` dùng logo robot tròn + hình `robot-clipboard-gv.png` (robot cầm bảng kẹp, đã tách nền) trên quầng sáng xanh; bỏ `school-illustration.png` (quá nhỏ, bị cắt).
+- 12/11 chat 4: sửa chữ tràn toàn bộ giao diện (mục 7b) trên bản GitHub `Techkids-lms-main`; nhận file PPCT `Phân phối chương trình Python.xlsx` để làm tiếp 8.4.
+- 12/11 chat 4 (tiếp): mở buổi bằng nút gạt + chế độ tự mở theo lịch; bài tập nhiều tab + chấm ✓/✗; nhập PPCT thật (đoán cột theo dữ liệu, đánh số lại, nút Làm Quiz, tự tạo bài tập); tách nền + WebP toàn bộ hình; nút Đăng nhập GV/HS; nộp bài bỏ ảnh, thêm dán link; giảm truy vấn, giữ web thức, sao lưu Excel. SQL mới: `006_mo_buoi_nhieu_bai.sql`.
+- 12/11 chat 4: thầy chạy 006 + `npm run build` thành công lần đầu.
+- 12/11 chat 4: Tổng quan GV gọn lại theo cách A (công tắc mở buổi nằm trong thẻ lớp, nút ⚙). PPCT thật CHƯA nhập vào web (lớp TK1/TK2 đang dùng chương trình mẫu).

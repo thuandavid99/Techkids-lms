@@ -44,7 +44,7 @@ export function DongThongBao({ a }: { a: { id: string; noi_dung: string; tao_luc
             <Button size="sm" variant="outlineGray" onClick={() => setSua(false)}>Hủy</Button>
           </div>
         </div>
-      ) : <p className="whitespace-pre-line">{a.noi_dung}</p>}
+      ) : <p className="chu-dai whitespace-pre-line">{a.noi_dung}</p>}
       <div className="mt-2 flex items-center justify-between text-sm text-slate-500">
         <span>{fmtDateTime(a.tao_luc)}</span>
         {!sua && <span className="flex gap-2">

@@ -76,7 +76,8 @@ Mở từng file trong thư mục `supabase/` bằng VS Code → **Ctrl+A**, **C
 | 3 | `supabase/003_storage.sql` | Tạo 3 kho file **riêng tư**: `submissions`, `materials`, `assignment-files` |
 | 4 | `supabase/004_views_functions.sql` | View tính trạng thái nộp bài, hàm nộp/chấm, thông báo tự động |
 | 5 | `supabase/005_giao_vien_rieng.sql` | **Phân loại tài khoản**: Quản trị / Giáo viên (mỗi GV chỉ thấy lớp mình) |
-| 6 (tùy chọn) | `supabase/seed.sql` | Loại buổi, phân loại tài liệu, nhận xét mẫu, mẫu tin nhắn mặc định |
+| 6 | `supabase/006_mo_buoi_nhieu_bai.sql` | **Nút gạt mở buổi** (thầy tự mở / tự mở theo lịch), **bài tập nhiều tab** (Bài 1…N, chấm ✓/✗), hàm giữ web “thức” |
+| 7 (tùy chọn) | `supabase/seed.sql` | Loại buổi, phân loại tài liệu, nhận xét mẫu, mẫu tin nhắn mặc định |
 
 > Đã chạy 001–004 từ trước? Chỉ cần chạy thêm **005**. Nếu sau này chạy lại 002 hoặc 004, **luôn chạy lại 005 sau cùng**.
 

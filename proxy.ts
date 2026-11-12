@@ -9,7 +9,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const CONG_KHAI = ["/dang-nhap", "/quen-mat-khau", "/giao-vien"];
+const CONG_KHAI = ["/dang-nhap", "/quen-mat-khau", "/giao-vien", "/api/song"];
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -41,8 +41,15 @@ export async function proxy(request: NextRequest) {
     to.search = "";
     return NextResponse.redirect(to);
   }
+  // Học sinh: việc "tạo thông báo tự động + tự mở buổi theo lịch" chỉ chạy tối đa 15 phút/lần
+  // (layout học sinh thấy chưa có cookie này thì mới chạy) → bớt truy vấn mỗi lần chuyển trang.
+  if (daDangNhap && !congKhai && !path.startsWith("/gv") && !path.startsWith("/api") && !request.cookies.get(COOKIE_TB)) {
+    response.cookies.set(COOKIE_TB, "1", { maxAge: 15 * 60, httpOnly: true, sameSite: "lax", path: "/" });
+  }
   return response;
 }
+
+const COOKIE_TB = "lms_tb";
 
 export const config = {
   // Bỏ qua file tĩnh và ảnh

@@ -44,7 +44,7 @@ export function ThongBaoCard({ ds, href = "/thong-bao" }: { ds: TB[]; href?: str
           {ds.map((t) => (
             <li key={t.id} className="flex gap-3 text-sm">
               <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${CHAM[t.loai] ?? "bg-slate-400"}`} />
-              <Link href={t.lien_ket ?? href} className={`flex-1 ${t.da_doc ? "text-slate-600" : "font-semibold"}`}>{t.noi_dung}</Link>
+              <Link href={t.lien_ket ?? href} className={`min-w-0 flex-1 chu-dai ${t.da_doc ? "text-slate-600" : "font-semibold"}`}>{t.noi_dung}</Link>
               <span className="shrink-0 text-xs text-slate-400">{fmtAgo(t.tao_luc)}</span>
             </li>
           ))}
@@ -63,7 +63,7 @@ export function LopCuaBanCard({ ten, siSo }: { ten: string; siSo: number }) {
           <p className="text-xl font-extrabold">Lớp {ten}</p>
           <p className="text-sm text-slate-600">Sĩ số: {siSo} học sinh</p>
         </div>
-        <Image src={IMG.school} alt="" width={110} height={86} className="h-auto w-24" />
+        <Image src={IMG.school} alt="" width={120} height={90} unoptimized className="h-auto w-24 shrink-0" />
       </div>
       <ButtonLink href="/lop-cua-toi" variant="ghost" size="sm" className="mt-3 w-full !rounded-xl bg-xanh-50">Xem chi tiết lớp →</ButtonLink>
     </Card>

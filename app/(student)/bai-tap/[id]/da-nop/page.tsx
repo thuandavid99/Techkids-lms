@@ -3,11 +3,12 @@ import { notFound } from "next/navigation";
 import { Check, Download, Star } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
 import { duLieuHs } from "@/lib/server/hs";
+import { soBaiCua } from "@/lib/server/data";
+import { XemBaiNop } from "@/components/shared/XemBaiNop";
 import { IMG } from "@/lib/brand";
 import { BrandCard, PageGrid } from "@/components/ui/Card";
 import { ButtonLink, btnClass } from "@/components/ui/Button";
 import { NhanBai } from "@/components/ui/Pill";
-import { CodeView } from "@/components/ui/CodeView";
 import { tinhTrangThai } from "@/lib/domain/status";
 import { tenBaiTap, tenBuoi } from "@/lib/domain/naming";
 import { fmtDateTime } from "@/lib/domain/time";
@@ -23,7 +24,8 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   const r = dong.find((x) => x.assignment_id === id);
   if (!r) notFound();
   const kq = tinhTrangThai(r, new Date());
-  const { data: s } = await sb.from("submissions").select("id, code_text, file_path, ten_goc, mime").eq("assignment_id", id).eq("student_id", p.id).maybeSingle();
+  const { data: s } = await sb.from("submissions").select("id, code_text, file_path, ten_goc, mime, cham_tabs").eq("assignment_id", id).eq("student_id", p.id).maybeSingle();
+  const soBai = await soBaiCua(sb, id, null, p.class_id);
   const b = buoi.find((x) => x.lesson_id === r.lesson_id);
   const daCham = r.trang_thai === "da_cham";
   const choNopLai = r.trang_thai === "da_nop" || r.trang_thai === "can_nop_lai";
@@ -54,7 +56,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
           {s && (
             <div className="mt-6 text-left">
               <p className="mb-2 font-bold">Bài em đã nộp (bản mới nhất)</p>
-              {s.code_text ? <CodeView code={s.code_text} minH={160} /> : (
+              {s.code_text ? <XemBaiNop codeText={s.code_text} soBai={soBai} cham={s.cham_tabs} minH={160} /> : (
                 <p className="rounded-xl bg-xanh-50 px-4 py-3">📎 {s.ten_goc}</p>
               )}
             </div>

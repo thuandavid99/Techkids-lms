@@ -122,3 +122,44 @@ export async function xoaThongBao(id: string): Promise<KQ> {
 export async function toiLa(): Promise<string | null> {
   return (await getProfile())?.id ?? null;
 }
+
+// ---------------- MỞ BUỔI BẰNG NÚT GẠT ----------------
+/** Gạt mở / khóa một buổi cho lớp. Mở = hiện ngay (bỏ hẹn giờ nếu có). */
+export async function gatMoBuoi(classId: string, lessonId: string, mo: boolean): Promise<KQ> {
+  return chay(async (sb) => {
+    await kiemTraLop(sb, classId);
+    const patch = mo ? { hien_thi: true, ngay_mo: null } : { hien_thi: false };
+    chk(await sb.from("class_lessons").upsert({ class_id: uuid(classId), lesson_id: uuid(lessonId), ...patch }));
+    await ghiNhatKy(mo ? "mo_buoi" : "an", "class_lessons", `${classId}:${lessonId}`);
+    revalidatePath("/", "layout");
+    return ok(mo ? "Đã mở buổi cho học sinh" : "Đã khóa buổi");
+  });
+}
+
+/** Chế độ mở buổi của lớp: 'thu_cong' (thầy gạt mở) | 'theo_lich' (đến ngày học tự mở) */
+export async function datCheDoMo(classId: string, cheDo: "thu_cong" | "theo_lich"): Promise<KQ> {
+  return chay(async (sb) => {
+    const { data, error } = await sb.rpc("gv_dat_che_do_mo", { p_class: uuid(classId), p_che_do: cheDo });
+    if (error) return loi("Chưa lưu được: " + error.message);
+    const kq = data as { ok: boolean; loi?: string };
+    if (!kq.ok) return loi(kq.loi ?? "Chưa lưu được.");
+    revalidatePath("/", "layout");
+    return ok(cheDo === "theo_lich" ? "Lớp sẽ tự mở buổi khi đến ngày học" : "Thầy tự gạt mở từng buổi");
+  });
+}
+
+/** Khóa mọi buổi CHƯA DẠY và chưa tới ngày học (dùng một lần khi chuyển sang cách "thầy tự mở") */
+export async function khoaBuoiChuaDay(classId: string): Promise<KQ> {
+  return chay(async (sb) => {
+    const c = uuid(classId);
+    await kiemTraLop(sb, c);
+    const homNay = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }).format(new Date());
+    const ds = (await buoiLop(sb, c)).filter((b) => !b.da_day && b.hien_thi && (!b.ngay_hoc || b.ngay_hoc > homNay));
+    for (let i = 0; i < ds.length; i += 100) {
+      chk(await sb.from("class_lessons").update({ hien_thi: false }).eq("class_id", c).in("lesson_id", ds.slice(i, i + 100).map((b) => b.lesson_id)));
+    }
+    await ghiNhatKy("khoa_buoi_chua_day", "class_lessons", c, null, { so_buoi: ds.length });
+    revalidatePath("/", "layout");
+    return ok(ds.length ? `Đã khóa ${ds.length} buổi chưa dạy` : "Không có buổi nào cần khóa");
+  });
+}

@@ -51,10 +51,10 @@ const NEN: Record<string, string> = {
   green: "bg-la-500 text-white", red: "bg-cam-600 text-white", teal: "bg-teal-500 text-white", gray: "bg-slate-400 text-white",
 };
 export const DS_MAU = Object.keys(NEN);
-export function LessonIcon({ icon, mau, size = 56 }: { icon?: string | null; mau?: string | null; size?: number }) {
+export function LessonIcon({ icon, mau, size = 56, className = "" }: { icon?: string | null; mau?: string | null; size?: number; className?: string }) {
   const I = ICONS[icon ?? ""] ?? BookOpen;
   return (
-    <span className={`inline-flex shrink-0 items-center justify-center rounded-2xl shadow-sm ${NEN[mau ?? "blue"] ?? NEN.blue}`} style={{ width: size, height: size }}>
+    <span className={`inline-flex shrink-0 items-center justify-center rounded-2xl shadow-sm ${NEN[mau ?? "blue"] ?? NEN.blue} ${className}`} style={{ width: size, height: size }}>
       <I className="h-1/2 w-1/2" />
     </span>
   );

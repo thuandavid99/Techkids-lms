@@ -10,11 +10,12 @@ import { tenBaiTap } from "@/lib/domain/naming";
 import { fmtDate } from "@/lib/domain/time";
 import { cmpKey } from "@/lib/domain/order";
 import { boDau } from "@/lib/domain/naming";
+import { docNop, noiThanhFile } from "@/lib/domain/bai-nop";
 
 // =====================================================================
 // XUẤT EXCEL (chỉ giáo viên):
 //   ?loai=ma-tran&lop=   · ?loai=bang-diem&lop=&hk=   · ?loai=bao-cao&lop=&trang_thai=
-//   ?loai=mau-hs         · ?loai=ppct&ct=
+//   ?loai=mau-hs         · ?loai=ppct&ct=     · ?loai=sao-luu (quản trị: toàn bộ HS + bài nộp + điểm)
 // =====================================================================
 const UUID = /^[0-9a-f-]{36}$/i;
 
@@ -25,6 +26,46 @@ export async function GET(req: NextRequest) {
   const loai = sp.get("loai");
   const sb = await createClient();
   const homNay = new Date().toISOString().slice(0, 10);
+
+  // SAO LƯU toàn bộ (chỉ quản trị): học sinh, lớp, bài nộp (cả code), điểm, nhận xét → 1 file Excel cất Google Drive
+  if (loai === "sao-luu") {
+    if (p?.vai_tro !== "quan_tri") return new NextResponse("Chỉ quản trị được sao lưu toàn bộ", { status: 403 });
+    const lay = async <T,>(bang: string, cot: string): Promise<T[]> => {
+      const ds: T[] = [];
+      for (let a = 0; ; a += 1000) {
+        const { data } = await sb.from(bang).select(cot).range(a, a + 999);
+        ds.push(...((data as T[] | null) ?? []));
+        if (!data || data.length < 1000) break;
+      }
+      return ds;
+    };
+    type HS = { id: string; ma_hs: string; ho_ten: string; class_id: string | null; vai_tro: string; dang_hoc: boolean; deleted_at: string | null };
+    type Lop = { id: string; ten_lop: string; nam_hoc: string };
+    type BT = { id: string; ma: string; tieu_de: string; so_bai: number | null };
+    type BN = { assignment_id: string; student_id: string; trang_thai: string; diem: number | null; nhan_xet: string | null; so_lan_nop: number; nop_luc_dau: string | null; nop_luc_moi_nhat: string | null; code_text: string | null; ten_goc: string | null };
+    const [hs, lops, bts, bns] = await Promise.all([
+      lay<HS>("profiles", "id, ma_hs, ho_ten, class_id, vai_tro, dang_hoc, deleted_at"),
+      lay<Lop>("classes", "id, ten_lop, nam_hoc"),
+      lay<BT>("assignments", "id, ma, tieu_de, so_bai"),
+      lay<BN>("submissions", "assignment_id, student_id, trang_thai, diem, nhan_xet, so_lan_nop, nop_luc_dau, nop_luc_moi_nhat, code_text, ten_goc"),
+    ]);
+    const tenLop = new Map(lops.map((l) => [l.id, l.ten_lop]));
+    const hsMap = new Map(hs.map((h) => [h.id, h]));
+    const btMap = new Map(bts.map((b) => [b.id, b]));
+    const cat = (x: string | null) => (x ?? "").slice(0, 32000); // giới hạn 1 ô Excel
+    const buf = await taoXlsx([
+      { ten: "Học sinh", tieuDe: ["Mã HS", "Họ tên", "Lớp", "Vai trò", "Đang học", "Đã xóa"],
+        dong: hs.filter((h) => h.vai_tro === "hoc_sinh").map((h) => [h.ma_hs, h.ho_ten, tenLop.get(h.class_id ?? "") ?? "", h.vai_tro, h.dang_hoc ? "có" : "nghỉ", h.deleted_at ? "đã xóa" : ""]) },
+      { ten: "Bài nộp", tieuDe: ["Lớp", "Mã HS", "Họ tên", "Bài tập", "Trạng thái", "Điểm", "Nhận xét", "Số lần nộp", "Nộp lần đầu", "Nộp mới nhất", "File", "Nội dung bài làm (code / link)"],
+        dong: bns.map((b) => {
+          const h = hsMap.get(b.student_id); const a = btMap.get(b.assignment_id);
+          return [tenLop.get(h?.class_id ?? "") ?? "", h?.ma_hs ?? "", h?.ho_ten ?? "", a ? tenBaiTap(a.ma, a.tieu_de) : "", b.trang_thai, b.diem === null ? "" : Number(b.diem), b.nhan_xet ?? "", b.so_lan_nop,
+            b.nop_luc_dau ? fmtDate(b.nop_luc_dau) : "", b.nop_luc_moi_nhat ? fmtDate(b.nop_luc_moi_nhat) : "", b.ten_goc ?? "", cat(noiThanhFile(docNop(b.code_text, a?.so_bai ?? 1)))];
+        }) },
+      { ten: "Lớp", tieuDe: ["Tên lớp", "Năm học"], dong: lops.map((l) => [l.ten_lop, l.nam_hoc]) },
+    ]);
+    return phanHoiXlsx(buf, `sao-luu-lms-${homNay}.xlsx`);
+  }
 
   if (loai === "mau-hs") {
     const buf = await taoXlsx([{ ten: "Danh sách", tieuDe: ["Mã HS", "Họ và tên"], dong: [["HS001", "Nguyễn Văn An"], ["", "Trần Thị Bình (để trống mã = tự tạo)"]] }]);
