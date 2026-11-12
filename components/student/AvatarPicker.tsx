@@ -17,9 +17,9 @@ export function AvatarPicker({ name, avatar }: { name: string; avatar: string })
       <Avatar name={name} avatar={chon} size={128} />
       <div className="flex flex-wrap justify-center gap-2" role="radiogroup" aria-label="Chọn ảnh đại diện">
         {DS_AVATAR.map((a) => (
-          <button key={a} role="radio" aria-checked={chon === a} onClick={() => setChon(a)}
+          <button key={a} role="radio" aria-checked={chon === a} onClick={() => setChon(a)} aria-label={a === "default" ? "Bạn nam" : a === "nu" ? "Bạn nữ" : `Màu ${a}`}
             className={`rounded-full p-0.5 ${chon === a ? "ring-4 ring-xanh-500" : ""}`}>
-            <Avatar name={name} avatar={a} size={36} />
+            <Avatar name={name} avatar={a} size={a === "default" || a === "nu" ? 44 : 36} />
           </button>
         ))}
       </div>

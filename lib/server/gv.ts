@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import { dongBaiLop, dongBaiTatCa, buoiLop, cacLoaiBuoi, toDongBai, type DongDayDu } from "./data";
 import { tinhTrangThai } from "@/lib/domain/status";
 import { boHaiBaiLienTiep } from "@/lib/domain/stats";
-import { soTrongNhan } from "@/lib/domain/naming";
 import type { DongBaiHs, Lop } from "@/lib/types";
 
 type SB = Awaited<ReturnType<typeof createClient>>;
@@ -23,11 +22,10 @@ export async function duLieuLop(sb: SB, classId: string) {
 
 /** "Đang ở buổi N / tổng" của lớp */
 /** "Đang ở buổi x/y": buổi đã dạy = thầy đánh dấu HOẶC ngày học đã qua (không cần tích tay) */
-export function dangOBuoi(buoi: { da_day: boolean; nhan_buoi: string; ngay_hoc?: string | null }[], homNay: string = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }).format(new Date())) {
-  const daDay = buoi.filter((b) => b.da_day || (!!b.ngay_hoc && b.ngay_hoc < homNay));
-  const cuoi = daDay[daDay.length - 1];
-  const tong = buoi.reduce((s, b) => s + Math.max(1, soTrongNhan(b.nhan_buoi).length), 0);
-  return { dangO: cuoi ? soTrongNhan(cuoi.nhan_buoi).at(-1) ?? daDay.length : 0, tong };
+/** Tiến độ lớp "Đã học x/y buổi" (đếm theo dòng), theo nút "Xong buổi" — không theo ngày */
+export function dangOBuoi(buoi: { da_day: boolean; ban_nhap?: boolean }[]) {
+  const ds = buoi.filter((b) => !b.ban_nhap);
+  return { daHoc: ds.filter((b) => b.da_day).length, tong: ds.length };
 }
 
 /** Tóm tắt hôm nay + số liệu từng lớp (trang Tổng quan) */

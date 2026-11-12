@@ -15,10 +15,10 @@ describe("Trạng thái buổi (danh sách buổi học)", () => {
     expect(trangThaiBuoi({ ngay_hoc: "2026-11-09", da_day: true }, [r({ trang_thai: "da_nop", nop_luc_dau: "2026-11-09T00:00:00Z" })], NOW).text).toBe("Đã hoàn thành");
     expect(trangThaiBuoi({ ngay_hoc: "2026-11-09", da_day: true }, [r()], NOW).text).toBe("Chưa làm");
   });
-  it("hạn hôm nay → Đến hạn hôm nay; quá hạn → Quá hạn; ngày học tương lai → Chưa đến hạn", () => {
+  it("hạn hôm nay → Đến hạn hôm nay; quá hạn → Quá hạn; ngày học không ảnh hưởng (tiến độ theo nút Xong buổi)", () => {
     expect(trangThaiBuoi({ ngay_hoc: "2026-11-09", da_day: true }, [r({ han_lop: "2026-11-10T14:00:00Z" })], NOW).text).toBe("Đến hạn hôm nay");
     expect(trangThaiBuoi({ ngay_hoc: "2026-11-01", da_day: true }, [r({ han_lop: "2026-11-05T14:00:00Z" })], NOW).text).toBe("Quá hạn");
-    expect(trangThaiBuoi({ ngay_hoc: "2026-11-20", da_day: false }, [r({ han_lop: "2026-11-25T14:00:00Z" })], NOW).text).toBe("Chưa đến hạn");
+    expect(trangThaiBuoi({ ngay_hoc: "2026-11-20", da_day: false }, [r({ han_lop: "2026-11-25T14:00:00Z" })], NOW).text).toBe("Chưa làm");
   });
   it("buổi không có bài: đã dạy → hoàn thành", () => {
     expect(trangThaiBuoi({ ngay_hoc: "2026-11-01", da_day: true }, [], NOW).xong).toBe(true);

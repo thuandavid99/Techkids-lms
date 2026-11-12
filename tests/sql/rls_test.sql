@@ -1,7 +1,7 @@
 -- =====================================================================
 -- tests/sql/rls_test.sql — KIỂM THỬ PHÂN QUYỀN + NỘP/CHẤM BÀI (dành cho lập trình viên)
 -- KHÔNG chạy trên Supabase thật (file tạo người dùng giả trong auth.users).
--- Chạy trên Postgres thử nghiệm sau 00_supabase_stub + 001..007 + seed.
+-- Chạy trên Postgres thử nghiệm sau 00_supabase_stub + 001..008 + seed.
 -- Mỗi kiểm tra in "OK ..." hoặc dừng với lỗi "FAIL ...".
 -- =====================================================================
 \set ON_ERROR_STOP 1
@@ -366,6 +366,20 @@ do $$ declare c uuid; a uuid; n1 int; n3 int; r jsonb; begin
   r := hs_nop_bai('00000000-0000-0000-0000-0000000000b1', a, 'print(1)', null, null, 8, 'text/x-python');
   if (r->>'ok')::boolean then raise exception 'FAIL 26c: em không được giao vẫn nộp được bài riêng'; end if;
   raise notice 'OK 26: bài riêng chỉ hiện và chỉ tính cho em được giao';
+end $$;
+
+-- ---------- 27. (008) người chưa đăng nhập không chạy được hàm nào, trừ song() ----------
+do $$
+declare n int;
+begin
+  select count(*) into n from pg_proc p join pg_namespace ns on ns.oid = p.pronamespace
+  where ns.nspname = 'public' and p.proname <> 'song'
+    and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
+    and has_function_privilege('anon', p.oid, 'execute');
+  if n > 0 then raise exception 'FAIL 27a: anon còn chạy được % hàm', n; end if;
+  if not has_function_privilege('anon', 'public.song()', 'execute') then raise exception 'FAIL 27b: anon không gọi được song()'; end if;
+  if not has_function_privilege('authenticated', 'public.is_admin()', 'execute') then raise exception 'FAIL 27c: người đã đăng nhập mất quyền hàm phân quyền'; end if;
+  raise notice 'OK 27: anon chỉ gọi được song(); người đã đăng nhập giữ quyền';
 end $$;
 
 rollback;

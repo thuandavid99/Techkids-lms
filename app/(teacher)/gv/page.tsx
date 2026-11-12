@@ -2,14 +2,14 @@ import Link from "next/link";
 import { Users, ArrowRight, Trophy, CalendarDays, Hourglass, UserX, PhoneCall, Hand, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { cacLop, buoiLop } from "@/lib/server/data";
-import { tongQuan, dangOBuoi } from "@/lib/server/gv";
+import { tongQuan } from "@/lib/server/gv";
 import { Card, PageGrid, CardTitle } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
 import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/States";
 import { tenBaiTap, tenBuoi } from "@/lib/domain/naming";
-import { fmtAgo, fmtDate } from "@/lib/domain/time";
-import { chonBuoiMo } from "@/lib/domain/mo-buoi";
+import { fmtAgo } from "@/lib/domain/time";
+import { tienDoLop } from "@/lib/domain/mo-buoi";
 import { MoBuoiLop, type LopMoBuoi } from "@/components/teacher/MoBuoiHomNay";
 
 export const metadata = { title: "Tổng quan các lớp" };
@@ -17,8 +17,8 @@ export const metadata = { title: "Tổng quan các lớp" };
 export default async function Page() {
   const sb = await createClient();
   const lops = await cacLop(sb);
-  // Lớp "tự mở theo lịch": mở các buổi đã tới ngày trước khi đọc dữ liệu
-  await Promise.all(lops.filter((l) => l.che_do_mo === "theo_lich").map((l) => sb.rpc("mo_buoi_theo_lich", { p_class: l.id })));
+  // Bỏ chế độ cũ "tự mở theo lịch": tiến độ giờ theo nút "Xong buổi này" (ngày học chỉ để tham khảo)
+  await Promise.all(lops.filter((l) => l.che_do_mo === "theo_lich").map((l) => sb.rpc("gv_dat_che_do_mo", { p_class: l.id, p_che_do: "thu_cong" })));
   const [{ tomTat, theThe }, { data: hs }, { data: moiNop }, ...lich] = await Promise.all([
     tongQuan(sb, lops),
     sb.from("profiles").select("id, class_id").eq("vai_tro", "hoc_sinh").is("deleted_at", null).eq("dang_hoc", true),
@@ -28,13 +28,16 @@ export default async function Page() {
   const siSo = new Map<string, number>();
   for (const h of (hs as { class_id: string | null }[]) ?? []) if (h.class_id) siSo.set(h.class_id, (siSo.get(h.class_id) ?? 0) + 1);
   const tenLop = new Map(lops.map((l) => [l.id, l.ten_lop]));
-  const gat = (b: { lesson_id: string; nhan_buoi: string; tieu_de: string; ngay_hoc: string | null; da_mo: boolean } | null) =>
-    b ? { lesson_id: b.lesson_id, ten: tenBuoi(b.nhan_buoi, b.tieu_de), ngay: b.ngay_hoc ? fmtDate(b.ngay_hoc) : "", mo: b.da_mo } : null;
+  const gat = (b: { lesson_id: string; nhan_buoi: string; tieu_de: string; da_mo: boolean } | null) =>
+    b ? { lesson_id: b.lesson_id, ten: tenBuoi(b.nhan_buoi, b.tieu_de), mo: b.da_mo } : null;
   const moBuoi: LopMoBuoi[] = lops.map((l, i) => {
-    const c = chonBuoiMo(lich[i] ?? []);
+    const ds = lich[i] ?? [];
+    const c = tienDoLop(ds);
     return {
-      id: l.id, ten_lop: l.ten_lop, cheDo: l.che_do_mo === "theo_lich" ? "theo_lich" : "thu_cong",
-      homNay: gat(c.homNay), coLichHomNay: c.coLichHomNay, tiepTheo: gat(c.tiepTheo), soDaMo: c.soDaMo, tong: c.tong,
+      id: l.id, ten_lop: l.ten_lop,
+      dangHoc: gat(c.dangHoc), tiepTheo: gat(c.tiepTheo), coBuoiTruoc: !!c.buoiTruoc,
+      viTri: c.viTri, soDaHoc: c.soDaHoc, soDaMo: c.soDaMo, tong: c.tong, chuaBatDau: c.chuaBatDau,
+      dsBuoi: ds.filter((b) => !b.ban_nhap).map((b) => ({ lesson_id: b.lesson_id, ten: tenBuoi(b.nhan_buoi, b.tieu_de) })),
     };
   });
 
@@ -69,7 +72,6 @@ export default async function Page() {
           <div className="grid gap-4 md:grid-cols-2">
             {lops.map((l, i) => {
               const t = theThe[l.id] ?? { chuaNop: 0, choCham: 0 };
-              const d = dangOBuoi(lich[i] ?? []);
               return (
                 <div key={l.id} className="card card-pad flex flex-col gap-3">
                   {/* Bấm vào phần đầu thẻ → vào trang lớp (ma trận tiến độ) */}
@@ -77,7 +79,7 @@ export default async function Page() {
                     <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-xanh-50"><Users className="h-7 w-7 text-xanh-600" /></span>
                     <div className="min-w-0 flex-1">
                       <p className="text-2xl font-extrabold leading-tight group-hover:text-xanh-700">Lớp {l.ten_lop}</p>
-                      <p className="text-sm text-slate-600">{siSo.get(l.id) ?? 0} học sinh · đang ở buổi {d.dangO}/{d.tong}</p>
+                      <p className="text-sm text-slate-600">{siSo.get(l.id) ?? 0} học sinh</p>
                     </div>
                     <span className="shrink-0 rounded-full bg-xanh-500 p-2 text-white transition-transform group-hover:translate-x-0.5"><ArrowRight className="h-5 w-5" /></span>
                   </Link>

@@ -4,7 +4,7 @@
 // Có kiểm thử: tests/stats.test.ts
 // =====================================================================
 import { tinhTrangThai, type DongBaiTho, type KetQuaTrangThai, type LyDoNhac } from "./status";
-import { fmtDate, vnDateKey } from "./time";
+import { fmtDate } from "./time";
 
 export interface DongBai extends DongBaiTho {
   assignment_id: string;
@@ -54,9 +54,8 @@ export function diemTrungBinh(rows: DongBai[], opts: { hocKy?: number; soChuSo?:
 
 export interface BuoiTho { lesson_id: string; da_mo: boolean; da_day: boolean; ngay_hoc: string | null }
 
-/** Hành trình: buổi hoàn thành khi nộp đủ bài bắt buộc; buổi không có bài thì tính khi đã dạy / đã qua ngày học */
+/** Hành trình: buổi hoàn thành khi nộp đủ bài bắt buộc; buổi không có bài thì tính khi lớp đã học xong (da_day) — không theo ngày */
 export function hanhTrinh(buoi: BuoiTho[], rows: DongBai[], now = new Date()) {
-  const homNay = vnDateKey(now);
   let tong = 0, xong = 0;
   for (const b of buoi) {
     if (!b.da_mo) continue;
@@ -64,7 +63,7 @@ export function hanhTrinh(buoi: BuoiTho[], rows: DongBai[], now = new Date()) {
     const bai = rows.filter((r) => r.lesson_id === b.lesson_id).map((r) => tinhTrangThai(r, now));
     const batBuoc = bai.filter((k) => k.tinhVaoHoanThanh);
     if (batBuoc.length === 0) {
-      if (b.da_day || (b.ngay_hoc !== null && b.ngay_hoc <= homNay)) xong++;
+      if (b.da_day) xong++;
     } else if (batBuoc.every((k) => k.daNop)) xong++;
   }
   return { xong, tong, phanTram: tong === 0 ? 0 : Math.round((xong / tong) * 100) };
@@ -153,11 +152,11 @@ export function soLieuHs(buoi: BuoiTho[], rows: DongBai[], now = new Date()) {
   return { buoi: { xong: b.xong, tong: b.tong }, bai: { xong: t.daNop, tong: t.tong } };
 }
 
-export type KieuViec = "hoc_hom_nay" | "nop_lai" | "qua_han" | "sap_han";
+export type KieuViec = "dang_hoc" | "nop_lai" | "qua_han" | "sap_han";
 export interface ViecCanLam { kieu: KieuViec; tieuDe: string; href: string; han: Date | null }
 
 /**
- * "Hôm nay em cần làm": buổi học hôm nay, bài cần nộp lại, bài quá hạn (bắt buộc, chưa nộp),
+ * "Hôm nay em cần làm": buổi lớp đang học (buổi mở đầu tiên chưa học xong), bài cần nộp lại, bài quá hạn (bắt buộc, chưa nộp),
  * bài còn hạn trong 3 ngày tới. Thứ tự ưu tiên như trên; tối đa `toiDa` mục.
  */
 export function viecCanLam(
@@ -166,12 +165,10 @@ export function viecCanLam(
   now = new Date(),
   toiDa = 5,
 ): ViecCanLam[] {
-  const homNay = vnDateKey(now);
   const out: ViecCanLam[] = [];
-  for (const b of buoi) {
-    if (b.da_mo && b.ngay_hoc === homNay) out.push({ kieu: "hoc_hom_nay", tieuDe: b.ten ?? b.tieu_de ?? "Buổi học hôm nay", href: `/buoi-hoc/${b.lesson_id}`, han: null });
-  }
-  const nhom: Record<Exclude<KieuViec, "hoc_hom_nay">, ViecCanLam[]> = { nop_lai: [], qua_han: [], sap_han: [] };
+  const dang = buoi.find((b) => b.da_mo && !b.da_day);
+  if (dang) out.push({ kieu: "dang_hoc", tieuDe: dang.ten ?? dang.tieu_de ?? "Buổi đang học", href: `/buoi-hoc/${dang.lesson_id}`, han: null });
+  const nhom: Record<Exclude<KieuViec, "dang_hoc">, ViecCanLam[]> = { nop_lai: [], qua_han: [], sap_han: [] };
   for (const r of rows) {
     if (r.mien_nop || r.loai_nop === "ngoai_he_thong" || r.da_mo === false) continue;
     const k = tinhTrangThai(r, now);

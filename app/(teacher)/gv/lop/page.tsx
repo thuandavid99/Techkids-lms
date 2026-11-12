@@ -55,7 +55,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ l
                     <td>{l.nam_hoc}</td>
                     <td>{siSo.get(l.id) ?? 0} HS</td>
                     <td>{ctLop.get(l.id) ?? <Pill mau="orange">Chưa áp dụng</Pill>}</td>
-                    <td>Buổi {d.dangO}/{d.tong}</td>
+                    <td>Đã học {d.daHoc}/{d.tong} buổi</td>
                     <td className="text-sm">{(gv.get(l.id) ?? []).join(", ") || "—"}</td>
                     <td>
                       <div className="flex justify-end gap-2">

@@ -10,7 +10,7 @@ import { EmptyState } from "@/components/ui/States";
 import { CellMenu } from "@/components/teacher/CellMenu";
 import { tinhTrangThai } from "@/lib/domain/status";
 import { tenBuoi, tenBaiTap } from "@/lib/domain/naming";
-import { fmtShort, toVNInput, vnDateKey } from "@/lib/domain/time";
+import { fmtShort, toVNInput } from "@/lib/domain/time";
 
 export const metadata = { title: "Tình hình nộp bài theo buổi" };
 
@@ -27,9 +27,8 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   const now = new Date();
   const coBai = new Set(rows.map((r) => r.lesson_id));
   const buoiCoBai = buoi.filter((b) => coBai.has(b.lesson_id));
-  // Mặc định: buổi đã dạy gần nhất, hoặc buổi có ngày học gần nhất trước hôm nay
-  const homNay = vnDateKey(now);
-  const macDinh = [...buoiCoBai].reverse().find((b) => b.da_day) ?? [...buoiCoBai].reverse().find((b) => b.ngay_hoc && b.ngay_hoc <= homNay) ?? buoiCoBai[0];
+  // Mặc định: buổi đã học gần nhất (theo nút "Xong buổi này")
+  const macDinh = [...buoiCoBai].reverse().find((b) => b.da_day) ?? buoiCoBai[0];
   const b = buoiCoBai.find((x) => x.lesson_id === buoiId) ?? macDinh;
 
   if (!b) return <Card><EmptyState title="Chưa có buổi nào có bài tập" hint="Thêm bài tập cho buổi học trong Chương trình học." /></Card>;

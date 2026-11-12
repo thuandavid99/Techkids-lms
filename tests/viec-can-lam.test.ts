@@ -14,7 +14,7 @@ const bai = (x: Partial<DongBai> = {}): DongBai => {
 };
 
 describe("Hôm nay em cần làm", () => {
-  it("ưu tiên: học hôm nay → nộp lại → quá hạn → sắp hạn (≤3 ngày)", () => {
+  it("ưu tiên: buổi đang học → nộp lại → quá hạn → sắp hạn (≤3 ngày)", () => {
     const rows = [
       bai({ tieu_de: "sap", han_lop: "2026-11-14T10:00:00Z" }),
       bai({ tieu_de: "xa", han_lop: "2026-11-30T10:00:00Z" }),
@@ -24,9 +24,9 @@ describe("Hôm nay em cần làm", () => {
       bai({ tieu_de: "khoa", da_mo: false, han_lop: "2026-11-13T10:00:00Z" }),
       bai({ tieu_de: "xong", trang_thai: "da_nop", nop_luc_dau: "2026-11-11T00:00:00Z", han_lop: "2026-11-13T10:00:00Z" }),
     ];
-    const buoi = [{ lesson_id: "L1", da_mo: true, da_day: false, ngay_hoc: "2026-11-12", ten: "Buổi 8" }, { lesson_id: "L2", da_mo: true, da_day: false, ngay_hoc: "2026-11-15" }];
+    const buoi = [{ lesson_id: "L0", da_mo: true, da_day: true, ngay_hoc: null }, { lesson_id: "L1", da_mo: true, da_day: false, ngay_hoc: "2026-10-01", ten: "Buổi 8" }, { lesson_id: "L2", da_mo: true, da_day: false, ngay_hoc: null }];
     const v = viecCanLam(buoi, rows, NOW);
-    expect(v.map((x) => x.kieu)).toEqual(["hoc_hom_nay", "nop_lai", "qua_han", "sap_han"]);
+    expect(v.map((x) => x.kieu)).toEqual(["dang_hoc", "nop_lai", "qua_han", "sap_han"]);
     expect(v[0].href).toBe("/buoi-hoc/L1");
     expect(v[3].tieuDe).toContain("sap");
   });

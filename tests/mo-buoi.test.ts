@@ -1,40 +1,42 @@
-import { describe, expect, it } from "vitest";
-import { chonBuoiMo, type BuoiMo } from "@/lib/domain/mo-buoi";
+import { describe, it, expect } from "vitest";
+import { tienDoLop, nhomTienDo, type BuoiMo } from "@/lib/domain/mo-buoi";
 
-const b = (id: string, ngay: string | null, mo: boolean): BuoiMo => ({ lesson_id: id, nhan_buoi: id, tieu_de: "T" + id, ngay_hoc: ngay, hien_thi: mo, da_mo: mo, ban_nhap: false });
-const now = new Date("2026-11-12T03:00:00Z"); // 10:00 giờ VN
+const b = (n: string, daDay: boolean, mo = false, ngay: string | null = null): BuoiMo =>
+  ({ lesson_id: n, nhan_buoi: `Buổi ${n}`, tieu_de: `B${n}`, ngay_hoc: ngay, hien_thi: mo, da_mo: mo, ban_nhap: false, da_day: daDay });
 
-describe("chonBuoiMo", () => {
-  it("ưu tiên buổi có ngày học hôm nay", () => {
-    const r = chonBuoiMo([b("1", "2026-11-05", true), b("2", "2026-11-12", false), b("3", "2026-11-19", false)], now);
-    expect(r.homNay?.lesson_id).toBe("2");
-    expect(r.coLichHomNay).toBe(true);
+describe("tienDoLop (theo nút Xong buổi, không theo ngày)", () => {
+  it("đang học = buổi đầu tiên chưa xong; ngày học đã qua KHÔNG làm buổi thành đã học", () => {
+    const r = tienDoLop([b("1", true, true, "2026-10-01"), b("2", false, true, "2026-10-05"), b("3", false, false, "2026-10-08")]);
+    expect(r.dangHoc?.lesson_id).toBe("2");
     expect(r.tiepTheo?.lesson_id).toBe("3");
+    expect(r.buoiTruoc?.lesson_id).toBe("1");
+    expect(r.viTri).toBe(2);
+    expect(r.soDaHoc).toBe(1);
+    expect(r.tong).toBe(3);
   });
-  it("không có lịch hôm nay → buổi đang học (đã mở) + buổi chưa mở đầu tiên", () => {
-    const r = chonBuoiMo([b("1", null, true), b("2", null, false), b("3", null, false)], now);
-    expect(r.homNay?.lesson_id).toBe("1");
-    expect(r.coLichHomNay).toBe(false);
-    expect(r.tiepTheo?.lesson_id).toBe("2");
+  it("lớp mới (chưa học, chưa mở buổi nào) → chuaBatDau", () => {
+    const r = tienDoLop([b("1", false), b("2", false)]);
+    expect(r.chuaBatDau).toBe(true);
+    expect(r.dangHoc?.lesson_id).toBe("1");
   });
-  it("buổi mở lẻ ở cuối không làm lệch: lấy theo buổi chưa mở đầu tiên", () => {
-    const r = chonBuoiMo([b("1", null, true), b("9", null, true), b("10", null, false), b("26", null, true)], now);
-    expect(r.homNay?.lesson_id).toBe("9");
-    expect(r.tiepTheo?.lesson_id).toBe("10");
-  });
-  it("chưa mở buổi nào → buổi 1 và buổi 2", () => {
-    const r = chonBuoiMo([b("1", null, false), b("2", null, false)], now);
-    expect(r.homNay?.lesson_id).toBe("1");
-    expect(r.tiepTheo?.lesson_id).toBe("2");
-  });
-  it("đã mở hết → không còn buổi để mở", () => {
-    const r = chonBuoiMo([b("1", null, true)], now);
-    expect(r.homNay).toBeNull();
+  it("học hết → dangHoc null, viTri = tổng", () => {
+    const r = tienDoLop([b("1", true, true), b("2", true, false)]);
+    expect(r.dangHoc).toBeNull();
+    expect(r.viTri).toBe(2);
     expect(r.soDaMo).toBe(1);
   });
-  it("bỏ qua buổi nháp", () => {
-    const r = chonBuoiMo([{ ...b("1", null, false), ban_nhap: true }, b("2", null, false), b("3", null, false)], now);
-    expect(r.homNay?.lesson_id).toBe("2");
-    expect(r.tiepTheo?.lesson_id).toBe("3");
+  it("bỏ buổi bản nháp", () => {
+    const r = tienDoLop([{ ...b("1", false), ban_nhap: true }, b("2", false), b("3", false)]);
+    expect(r.dangHoc?.lesson_id).toBe("2");
+    expect(r.tong).toBe(2);
+  });
+});
+
+describe("nhomTienDo", () => {
+  it("chia 3 nhóm", () => {
+    const g = nhomTienDo([b("1", true), b("2", true), b("3", false), b("4", false)]);
+    expect(g.daHoc.length).toBe(2);
+    expect(g.dangHoc?.lesson_id).toBe("3");
+    expect(g.chuaHoc.map((x) => x.lesson_id)).toEqual(["4"]);
   });
 });

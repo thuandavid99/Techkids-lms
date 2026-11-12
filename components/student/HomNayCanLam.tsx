@@ -5,7 +5,7 @@ import type { ViecCanLam, KieuViec } from "@/lib/domain/stats";
 import { fmtDate } from "@/lib/domain/time";
 
 const KIEU: Record<KieuViec, { nhan: string; I: typeof Clock; c: string; nen: string }> = {
-  hoc_hom_nay: { nhan: "Học hôm nay", I: BookOpenText, c: "text-xanh-700", nen: "bg-xanh-50 border-xanh-100" },
+  dang_hoc: { nhan: "Buổi lớp đang học", I: BookOpenText, c: "text-xanh-700", nen: "bg-xanh-50 border-xanh-100" },
   nop_lai: { nhan: "Thầy nhờ nộp lại", I: RotateCcw, c: "text-tim-500", nen: "bg-violet-50 border-violet-100" },
   qua_han: { nhan: "Đã quá hạn", I: AlertTriangle, c: "text-do-600", nen: "bg-red-50 border-red-100" },
   sap_han: { nhan: "Sắp đến hạn", I: Clock, c: "text-cam-500", nen: "bg-cam-50 border-orange-100" },

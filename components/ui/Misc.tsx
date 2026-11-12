@@ -25,10 +25,14 @@ const AVATAR_MAU: Record<string, string> = {
   cam: "from-orange-300 to-orange-500", tim: "from-violet-300 to-violet-500", la: "from-emerald-300 to-emerald-500",
   hong: "from-pink-300 to-pink-500", xanh: "from-sky-300 to-blue-500",
 };
-export const DS_AVATAR = ["default", "cam", "tim", "la", "hong", "xanh"];
+// "default" = bạn nam, "nu" = bạn nữ, còn lại là vòng màu có chữ cái đầu
+export const DS_AVATAR = ["default", "nu", "cam", "tim", "la", "hong", "xanh"];
 
-/** Ảnh đại diện: ảnh mặc định hoặc vòng màu có chữ cái đầu */
+/** Ảnh đại diện: hình bạn nam / bạn nữ, hoặc vòng màu có chữ cái đầu */
 export function Avatar({ name, avatar = "default", size = 40 }: { name: string; avatar?: string; size?: number }) {
+  if (avatar === "nu") {
+    return <Image src={IMG.avatarNu} alt="" width={size} height={size} unoptimized className="rounded-full bg-xanh-50 object-cover" style={{ width: size, height: size }} />;
+  }
   if (avatar === "default" || !AVATAR_MAU[avatar]) {
     return <Image src={IMG.avatar} alt="" width={size} height={size} className="rounded-full bg-xanh-50 object-cover" style={{ width: size, height: size }} />;
   }

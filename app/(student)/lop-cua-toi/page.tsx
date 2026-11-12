@@ -4,7 +4,6 @@ import { Card, PageGrid, PageHeader } from "@/components/ui/Card";
 import { ThanhXY } from "@/components/student/Cards";
 import { EmptyState } from "@/components/ui/States";
 import { TEN_THU } from "@/lib/domain/time";
-import { soTrongNhan } from "@/lib/domain/naming";
 
 export const metadata = { title: "Lớp học của tôi" };
 
@@ -19,7 +18,6 @@ export default async function Page() {
     sb.from("class_lessons").select("lesson_id", { count: "exact", head: true }).eq("class_id", lop.id).is("deleted_at", null),
   ]);
   const daDay = buoi.filter((b) => b.da_day);
-  const dangO = daDay.length ? soTrongNhan(daDay[daDay.length - 1].nhan_buoi).at(-1) ?? daDay.length : 0;
   const tongBuoi = tong ?? buoi.length;
   return (
     <PageGrid
@@ -31,7 +29,7 @@ export default async function Page() {
               <li>Sĩ số: <b>{(ban as unknown[])?.length ?? 0} học sinh</b></li>
               <li>Giáo viên: <b>{((gv as { ho_ten: string }[]) ?? []).map((g) => g.ho_ten).join(", ") || "—"}</b></li>
               <li>Lịch học: <b>{lichThu.length ? lichThu.map((t) => TEN_THU[t]).join(", ") : "—"}</b></li>
-              <li>Tiến độ lớp: <b>đang ở buổi {dangO}/{tongBuoi}</b></li>
+              <li>Tiến độ lớp: <b>đã học {daDay.length}/{tongBuoi} buổi</b></li>
             </ul>
             <ThanhXY nhan="Cả lớp đã học" xong={daDay.length} tong={tongBuoi} />
           </div>

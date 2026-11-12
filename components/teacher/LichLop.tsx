@@ -1,8 +1,10 @@
 "use client";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarClock, ChevronDown, Lock, LockOpen, AlarmClock, StickyNote, MoreHorizontal, CheckCircle2 } from "lucide-react";
-import { capNhatBuoiLop, doiLich } from "@/lib/actions/gv/lop";
+import { CalendarClock, ChevronDown, Lock, LockOpen, AlarmClock, StickyNote, MoreHorizontal, MapPin, Check, Undo2 } from "lucide-react";
+import { capNhatBuoiLop, doiLich, datDangHoc, xongBuoi, quayLaiBuoi } from "@/lib/actions/gv/lop";
+import { ChonDangHoc } from "./MoBuoiHomNay";
+import { nhomTienDo } from "@/lib/domain/mo-buoi";
 import { useToast } from "@/components/ui/Toast";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
@@ -55,21 +57,19 @@ function ChipTrangThai({ b, luu, pending }: { b: DongLich; luu: (v: Parameters<t
   );
 }
 
-/** Một buổi: tên · ngày học · trạng thái · ghi chú · ⋯ (lớp nghỉ / đánh dấu dạy) */
-function DongBuoi({ b, homNay, luu, pending, onDoi }: { b: DongLich; homNay: string; luu: (id: string, v: Parameters<typeof capNhatBuoiLop>[2]) => void; pending: boolean; onDoi: (b: DongLich) => void }) {
+/** Một buổi: tên · ngày (tham khảo) · trạng thái mở/khóa · ghi chú · ⋯ */
+function DongBuoi({ b, dang, luu, pending, onDoi, onDatDang }: { b: DongLich; dang?: boolean; luu: (id: string, v: Parameters<typeof capNhatBuoiLop>[2]) => void; pending: boolean; onDoi: (b: DongLich) => void; onDatDang: (b: DongLich) => void }) {
   const [ghiChu, setGhiChu] = useState(!!b.ghi_chu);
   const [menu, setMenu] = useState(false);
-  const laHomNay = b.ngay_hoc === homNay;
   return (
-    <li className={`rounded-2xl border px-3 py-2.5 ${laHomNay ? "border-xanh-500 bg-xanh-50/70 shadow-sm" : b.noiBat ? "border-cam-400/40 bg-cam-50/60" : "border-vien bg-white"}`}>
+    <li className={`rounded-2xl border px-3 py-2.5 ${dang ? "border-cam-500 bg-cam-50/70 shadow-sm" : b.noiBat ? "border-cam-400/40 bg-cam-50/40" : "border-vien bg-white"}`}>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <div className="hang-chu">
           <p className="font-semibold leading-snug">
-            {laHomNay && <span className="mr-2 rounded-full bg-xanh-600 px-2 py-0.5 text-xs font-bold text-white">Hôm nay</span>}
             {b.ten}{b.banNhap && <span className="ml-1 text-xs text-slate-500">(bản nháp)</span>}
           </p>
         </div>
-        <input type="date" defaultValue={b.ngay_hoc} disabled={pending} aria-label={`Ngày học ${b.ten}`} className="input !w-[9.5rem] !py-1.5 text-sm"
+        <input type="date" defaultValue={b.ngay_hoc} disabled={pending} aria-label={`Ngày học dự kiến ${b.ten}`} title="Ngày học dự kiến (chỉ để tham khảo)" className="input !w-[9.5rem] !py-1.5 text-sm text-slate-600"
           onBlur={(e) => e.target.value !== b.ngay_hoc && luu(b.lesson_id, { ngay_hoc: e.target.value || null })} />
         <ChipTrangThai b={b} pending={pending} luu={(v) => luu(b.lesson_id, v)} />
         <button type="button" onClick={() => setGhiChu((x) => !x)} title="Ghi chú" aria-label={`Ghi chú ${b.ten}`}
@@ -78,10 +78,8 @@ function DongBuoi({ b, homNay, luu, pending, onDoi }: { b: DongLich; homNay: str
           <button type="button" onClick={() => setMenu((x) => !x)} aria-label={`Thêm thao tác ${b.ten}`} className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 hover:bg-xanh-50"><MoreHorizontal className="h-5 w-5" /></button>
           {menu && (
             <div className="card absolute right-0 top-10 z-30 w-64 space-y-1 p-2 text-sm" onMouseLeave={() => setMenu(false)}>
-              <button className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left hover:bg-xanh-50" onClick={() => { setMenu(false); onDoi(b); }}><CalendarClock className="h-4 w-4 text-xanh-600" /> Lớp nghỉ buổi này / dời lịch</button>
-              <button className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left hover:bg-xanh-50" onClick={() => { setMenu(false); luu(b.lesson_id, { da_day: !b.da_day }); }}>
-                <CheckCircle2 className="h-4 w-4 text-la-600" /> {b.da_day ? "Bỏ đánh dấu “đã dạy”" : "Đánh dấu đã dạy (dạy sớm)"}
-              </button>
+              {!dang && <button className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left hover:bg-cam-50" onClick={() => { setMenu(false); onDatDang(b); }}><MapPin className="h-4 w-4 text-cam-500" /> Lớp đang học tới buổi này</button>}
+              <button className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left hover:bg-xanh-50" onClick={() => { setMenu(false); onDoi(b); }}><CalendarClock className="h-4 w-4 text-xanh-600" /> Lớp nghỉ — lùi ngày dự kiến</button>
             </div>
           )}
         </div>
@@ -95,40 +93,65 @@ function DongBuoi({ b, homNay, luu, pending, onDoi }: { b: DongLich; homNay: str
 }
 
 /**
- * Lịch học thông minh của lớp:
- * - Buổi có ngày học TRƯỚC hôm nay (hoặc thầy đánh dấu đã dạy) tự coi là "Đã học" → thu gọn
- * - "Hôm nay & sắp tới": 3 buổi kế tiếp, nổi bật buổi hôm nay
- * - "Các buổi sau": thu gọn
- * - Trạng thái gộp 1 chip: Đang mở / Mở lúc… / Đang khóa
+ * Lịch & tiến độ của lớp — theo nút "Xong buổi này", KHÔNG theo ngày:
+ * ✅ Đã học (gập) · 📍 Đang học (+ nút Xong / Quay lại) · 🔒 Chưa học (3 buổi kế + phần còn lại gập)
+ * Mở/khóa từng buổi bằng chip trạng thái. Ngày học chỉ để tham khảo.
  */
-export function LichLop({ classId, ds, homNay }: { classId: string; ds: DongLich[]; homNay: string }) {
+export function LichLop({ classId, ds }: { classId: string; ds: DongLich[] }) {
   const [pending, start] = useTransition();
   const [doi, setDoi] = useState<DongLich | null>(null);
   const [soNgay, setSoNgay] = useState(7);
   const toast = useToast();
   const router = useRouter();
-  const luu = (id: string, v: Parameters<typeof capNhatBuoiLop>[2]) => start(async () => {
-    const kq = await capNhatBuoiLop(classId, id, v);
-    if (kq.ok) { toast("Đã lưu"); router.refresh(); } else toast(kq.loi!, "loi");
+  const chay = (p: Promise<{ ok: boolean; tb?: string; loi?: string }>) => start(async () => {
+    const kq = await p;
+    if (kq.ok) { toast(kq.tb ?? "Đã lưu"); router.refresh(); } else toast(kq.loi!, "loi");
   });
-  const daHoc = (b: DongLich) => b.da_day || (!!b.ngay_hoc && b.ngay_hoc < homNay);
-  const xong = ds.filter(daHoc);
-  const conLai = ds.filter((b) => !daHoc(b));
-  const sapToi = conLai.slice(0, 3), phiaSau = conLai.slice(3);
-  const ds_ = (list: DongLich[]) => (
-    <ul className="space-y-2">{list.map((b) => <DongBuoi key={b.lesson_id} b={b} homNay={homNay} luu={luu} pending={pending} onDoi={(x) => { setDoi(x); setSoNgay(7); }} />)}</ul>
-  );
+  const luu = (id: string, v: Parameters<typeof capNhatBuoiLop>[2]) => chay(capNhatBuoiLop(classId, id, v));
+  const g = nhomTienDo(ds.map((b) => ({ ...b, ban_nhap: b.banNhap })));
+  const chuaBatDau = g.daHoc.length === 0 && ds.every((b) => !b.hien_thi);
+  const sapToi = g.chuaHoc.slice(0, 3), phiaSau = g.chuaHoc.slice(3);
+  const ke = g.chuaHoc[0];
+  const props = { luu, pending, onDoi: (x: DongLich) => { setDoi(x); setSoNgay(7); }, onDatDang: (x: DongLich) => chay(datDangHoc(classId, x.lesson_id)) };
+  const ds_ = (list: DongLich[]) => <ul className="space-y-2">{list.map((b) => <DongBuoi key={b.lesson_id} b={b} {...props} />)}</ul>;
   const nhom = "rounded-2xl border border-vien bg-white/60 p-3 [&[open]>summary]:mb-3";
   return (
     <div className="space-y-4">
+      {chuaBatDau && (
+        <div className="rounded-2xl border-2 border-cam-400/60 bg-cam-50 p-4">
+          <p className="font-bold text-navy-950">Lớp đang học tới buổi nào?</p>
+          <p className="mb-2 text-sm text-slate-600">Chọn buổi lớp đang học. Các buổi trước sẽ chuyển thành “Đã học” và mở cho học sinh xem lại.</p>
+          <ChonDangHoc classId={classId} ds={ds.filter((b) => !b.banNhap).map((b) => ({ lesson_id: b.lesson_id, ten: b.ten }))} />
+        </div>
+      )}
       <details className={nhom}>
-        <summary className="cursor-pointer font-bold text-slate-700">✅ Đã học <span className="font-medium text-slate-500">({xong.length} buổi — tự tính theo ngày học, bấm để xem)</span></summary>
-        {xong.length ? ds_(xong) : <p className="text-sm text-slate-500">Chưa có buổi nào.</p>}
+        <summary className="cursor-pointer font-bold text-slate-700">✅ Đã học <span className="font-medium text-slate-500">({g.daHoc.length} buổi — bấm để xem, khóa/mở từng buổi được)</span></summary>
+        {g.daHoc.length ? ds_(g.daHoc) : <p className="text-sm text-slate-500">Chưa có buổi nào.</p>}
       </details>
       <section>
-        <h3 className="mb-2 font-extrabold text-navy-950">📌 Hôm nay & sắp tới</h3>
-        {sapToi.length ? ds_(sapToi) : <p className="rounded-2xl bg-la-50 p-4 text-sm">Đã học hết chương trình 🎉</p>}
+        <h3 className="mb-2 font-extrabold text-navy-950">📍 Đang học</h3>
+        {g.dangHoc ? (
+          <>
+            <ul><DongBuoi b={g.dangHoc} dang {...props} /></ul>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Button size="sm" disabled={pending} onClick={() => chay(xongBuoi(classId, g.dangHoc!.lesson_id))} className="!whitespace-normal">
+                <Check className="h-4 w-4 shrink-0" /> {ke ? `Xong buổi này → sang ${ke.ten.split(":")[0]} (mở cho HS)` : "Xong buổi cuối"}
+              </Button>
+              {g.daHoc.length > 0 && <Button size="sm" variant="ghost" disabled={pending} onClick={() => chay(quayLaiBuoi(classId))}><Undo2 className="h-4 w-4" /> Quay lại 1 buổi</Button>}
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-la-50 p-4 text-sm">Đã học hết chương trình 🎉
+            {g.daHoc.length > 0 && <Button size="sm" variant="ghost" disabled={pending} onClick={() => chay(quayLaiBuoi(classId))}><Undo2 className="h-4 w-4" /> Quay lại 1 buổi</Button>}
+          </div>
+        )}
       </section>
+      {sapToi.length > 0 && (
+        <section>
+          <h3 className="mb-2 font-extrabold text-navy-950">🔒 Chưa học <span className="text-sm font-medium text-slate-500">— muốn mở sớm thì bấm chip trạng thái</span></h3>
+          {ds_(sapToi)}
+        </section>
+      )}
       {phiaSau.length > 0 && (
         <details className={nhom}>
           <summary className="cursor-pointer font-bold text-slate-700">🗓️ Các buổi sau <span className="font-medium text-slate-500">({phiaSau.length} buổi)</span></summary>
@@ -136,21 +159,18 @@ export function LichLop({ classId, ds, homNay }: { classId: string; ds: DongLich
         </details>
       )}
 
-      <Modal open={!!doi} onClose={() => setDoi(null)} title="Lớp nghỉ / dời lịch">
-        <p>Dời <b>{doi?.ten}</b> và <b>tất cả các buổi sau</b> thêm:</p>
+      <Modal open={!!doi} onClose={() => setDoi(null)} title="Lớp nghỉ — lùi ngày dự kiến">
+        <p>Lùi ngày dự kiến của <b>{doi?.ten}</b> và <b>tất cả các buổi sau</b> thêm:</p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <input type="number" value={soNgay} onChange={(e) => setSoNgay(parseInt(e.target.value || "0", 10))} className="input !w-24" aria-label="Số ngày" />
           <span>ngày</span>
           <Button variant="outline" size="sm" onClick={() => setSoNgay(7)}>1 tuần</Button>
           <Button variant="outline" size="sm" onClick={() => setSoNgay(14)}>2 tuần</Button>
         </div>
-        <p className="mt-2 text-sm text-slate-500">Ví dụ lớp nghỉ lễ 1 tuần → chọn “1 tuần”, cả lịch phía sau tự lùi theo. Nhập số âm để kéo lịch về trước. Hạn nộp bài tập không tự đổi.</p>
+        <p className="mt-2 text-sm text-slate-500">Ngày học chỉ để thầy tham khảo — không ảnh hưởng mở/khóa buổi. Nhập số âm để kéo về trước. Hạn nộp bài tập không tự đổi.</p>
         <div className="mt-5 flex justify-end gap-2">
           <Button variant="outlineGray" onClick={() => setDoi(null)}>Hủy</Button>
-          <Button disabled={pending} onClick={() => start(async () => {
-            const kq = await doiLich(classId, doi!.lesson_id, soNgay);
-            if (kq.ok) { toast(kq.tb!); setDoi(null); router.refresh(); } else toast(kq.loi!, "loi");
-          })}>Dời lịch</Button>
+          <Button disabled={pending} onClick={() => { const d = doi!; setDoi(null); chay(doiLich(classId, d.lesson_id, soNgay)); }}>Lùi ngày</Button>
         </div>
       </Modal>
     </div>

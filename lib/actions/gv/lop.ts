@@ -136,6 +136,74 @@ export async function gatMoBuoi(classId: string, lessonId: string, mo: boolean):
   });
 }
 
+/** Lớp nào còn để chế độ cũ "tự mở theo lịch" thì chuyển về "thầy tự mở" (tiến độ giờ tính theo nút Xong buổi) */
+async function veThuCong(sb: Parameters<Parameters<typeof chay>[0]>[0], c: string) {
+  const { data } = await sb.from("classes").select("che_do_mo").eq("id", c).maybeSingle();
+  if ((data as { che_do_mo?: string } | null)?.che_do_mo === "theo_lich") await sb.rpc("gv_dat_che_do_mo", { p_class: c, p_che_do: "thu_cong" });
+}
+
+async function capNhatNhieu(sb: Parameters<Parameters<typeof chay>[0]>[0], c: string, ids: string[], patch: Record<string, unknown>) {
+  for (let i = 0; i < ids.length; i += 100) {
+    chk(await sb.from("class_lessons").update(patch).eq("class_id", c).in("lesson_id", ids.slice(i, i + 100)));
+  }
+}
+
+/** "Xong buổi này": buổi đang học → Đã học; buổi kế tiếp → Đang học và MỞ cho học sinh. Không đụng tới khóa/mở của buổi vừa xong. */
+export async function xongBuoi(classId: string, lessonId: string): Promise<KQ> {
+  return chay(async (sb) => {
+    const c = uuid(classId);
+    await kiemTraLop(sb, c);
+    const ds = (await buoiLop(sb, c)).filter((b) => !b.ban_nhap);
+    const i = ds.findIndex((b) => !b.da_day);
+    if (i < 0 || ds[i].lesson_id !== lessonId) return loi("Tiến độ lớp vừa thay đổi — thầy tải lại trang rồi bấm lại nhé.");
+    chk(await sb.from("class_lessons").update({ da_day: true }).eq("class_id", c).eq("lesson_id", ds[i].lesson_id));
+    const ke = ds[i + 1];
+    if (ke) chk(await sb.from("class_lessons").update({ hien_thi: true, ngay_mo: null }).eq("class_id", c).eq("lesson_id", ke.lesson_id));
+    await veThuCong(sb, c);
+    await ghiNhatKy("xong_buoi", "class_lessons", `${classId}:${lessonId}`);
+    revalidatePath("/", "layout");
+    return ok(ke ? "Đã chuyển sang buổi tiếp theo và mở cho học sinh" : "Lớp đã học hết chương trình 🎉");
+  });
+}
+
+/** "Quay lại": bỏ đánh dấu Đã học của buổi gần nhất (khi lỡ bấm Xong). Giữ nguyên mở/khóa. */
+export async function quayLaiBuoi(classId: string): Promise<KQ> {
+  return chay(async (sb) => {
+    const c = uuid(classId);
+    await kiemTraLop(sb, c);
+    const ds = (await buoiLop(sb, c)).filter((b) => !b.ban_nhap);
+    const truoc = [...ds].reverse().find((b) => b.da_day);
+    if (!truoc) return loi("Lớp chưa có buổi nào đã học.");
+    chk(await sb.from("class_lessons").update({ da_day: false }).eq("class_id", c).eq("lesson_id", truoc.lesson_id));
+    await ghiNhatKy("quay_lai_buoi", "class_lessons", `${classId}:${truoc.lesson_id}`);
+    revalidatePath("/", "layout");
+    return ok("Đã quay lại 1 buổi");
+  });
+}
+
+/**
+ * Đặt "lớp đang học tới buổi …" (dùng khi lớp áp dụng chương trình giữa chừng, hoặc chỉnh lại tiến độ):
+ * các buổi TRƯỚC → Đã học (buổi nào mới được đánh dấu thì mở luôn cho HS; buổi đã học từ trước giữ nguyên mở/khóa),
+ * buổi được chọn → Đang học + mở; các buổi SAU → chưa học (giữ nguyên mở/khóa).
+ */
+export async function datDangHoc(classId: string, lessonId: string): Promise<KQ> {
+  return chay(async (sb) => {
+    const c = uuid(classId);
+    await kiemTraLop(sb, c);
+    const ds = (await buoiLop(sb, c)).filter((b) => !b.ban_nhap);
+    const i = ds.findIndex((b) => b.lesson_id === lessonId);
+    if (i < 0) return loi("Không tìm thấy buổi.");
+    const moiXong = ds.slice(0, i).filter((b) => !b.da_day).map((b) => b.lesson_id);
+    await capNhatNhieu(sb, c, moiXong, { da_day: true, hien_thi: true, ngay_mo: null });
+    chk(await sb.from("class_lessons").update({ da_day: false, hien_thi: true, ngay_mo: null }).eq("class_id", c).eq("lesson_id", ds[i].lesson_id));
+    await capNhatNhieu(sb, c, ds.slice(i + 1).filter((b) => b.da_day).map((b) => b.lesson_id), { da_day: false });
+    await veThuCong(sb, c);
+    await ghiNhatKy("dat_dang_hoc", "class_lessons", `${classId}:${lessonId}`, null, { vi_tri: i + 1 });
+    revalidatePath("/", "layout");
+    return ok(`Lớp đang học buổi ${i + 1}/${ds.length}; ${i} buổi trước đã mở cho học sinh xem lại`);
+  });
+}
+
 /** Chế độ mở buổi của lớp: 'thu_cong' (thầy gạt mở) | 'theo_lich' (đến ngày học tự mở) */
 export async function datCheDoMo(classId: string, cheDo: "thu_cong" | "theo_lich"): Promise<KQ> {
   return chay(async (sb) => {
@@ -148,13 +216,15 @@ export async function datCheDoMo(classId: string, cheDo: "thu_cong" | "theo_lich
   });
 }
 
-/** Khóa mọi buổi CHƯA DẠY và chưa tới ngày học (dùng một lần khi chuyển sang cách "thầy tự mở") */
+/** Khóa mọi buổi CHƯA HỌC (sau buổi đang học) — dùng cho lớp cũ trước đây mở hết */
 export async function khoaBuoiChuaDay(classId: string): Promise<KQ> {
   return chay(async (sb) => {
     const c = uuid(classId);
     await kiemTraLop(sb, c);
-    const homNay = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }).format(new Date());
-    const ds = (await buoiLop(sb, c)).filter((b) => !b.da_day && b.hien_thi && (!b.ngay_hoc || b.ngay_hoc > homNay));
+    const ds0 = (await buoiLop(sb, c)).filter((b) => !b.ban_nhap);
+    const iDang = ds0.findIndex((b) => !b.da_day);
+    // Giữ buổi đang học; khóa các buổi chưa học đang mở
+    const ds = ds0.filter((b, j) => !b.da_day && j !== iDang && b.hien_thi);
     for (let i = 0; i < ds.length; i += 100) {
       chk(await sb.from("class_lessons").update({ hien_thi: false }).eq("class_id", c).in("lesson_id", ds.slice(i, i + 100).map((b) => b.lesson_id)));
     }

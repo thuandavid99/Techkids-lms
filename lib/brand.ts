@@ -25,6 +25,7 @@ export const IMG = {
   login: "/images/login-illustration.webp",
   school: "/images/school.svg",              // vẽ lại bằng SVG (ảnh cũ quá nhỏ, bị cắt)
   avatar: "/images/default-avatar.webp",
+  avatarNu: "/images/avatar-nu.svg",
   celebrate: "/images/robot-celebrate.webp",
   tablet: "/images/robot-tablet.webp",
   clipboard: "/images/robot-clipboard.webp",

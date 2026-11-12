@@ -5,7 +5,7 @@ import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/States";
 import { LichLop } from "@/components/teacher/LichLop";
 import { tenBuoi } from "@/lib/domain/naming";
-import { toVNInput, vnDateKey, fmtShort } from "@/lib/domain/time";
+import { toVNInput, fmtShort } from "@/lib/domain/time";
 
 export const metadata = { title: "Lịch học của lớp" };
 
@@ -16,9 +16,9 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const nb = new Set(loai.filter((l) => l.noi_bat).map((l) => l.id));
   return (
     <Card>
-      <PageHeader title={`Lịch học & buổi – Lớp ${lop?.ten_lop}`} sub="Buổi đã qua ngày học tự chuyển vào “Đã học”. Bấm chip trạng thái để mở / hẹn giờ / khóa; ⋯ khi lớp nghỉ cần dời lịch." actions={<ButtonLink href={`/gv/chuong-trinh/ap-dung?lop=${id}`} variant="secondary">Áp dụng / tính lại lịch</ButtonLink>} />
+      <PageHeader title={`Lịch học & buổi – Lớp ${lop?.ten_lop}`} sub="Tiến độ theo nút “Xong buổi này” — lớp chậm cứ để nguyên buổi đang học. Chip trạng thái: mở / hẹn giờ / khóa từng buổi. Ngày học chỉ để tham khảo." actions={<ButtonLink href={`/gv/chuong-trinh/ap-dung?lop=${id}`} variant="secondary">Áp dụng / tính lại lịch</ButtonLink>} />
       {buoi.length === 0 ? <EmptyState title="Lớp chưa áp dụng chương trình" action={<ButtonLink href={`/gv/chuong-trinh/ap-dung?lop=${id}`}>Áp dụng chương trình</ButtonLink>} /> : (
-        <LichLop classId={id} homNay={vnDateKey(new Date())} ds={buoi.map((b) => ({
+        <LichLop classId={id} ds={buoi.map((b) => ({
           lesson_id: b.lesson_id, ten: tenBuoi(b.nhan_buoi, b.tieu_de), ngay_hoc: b.ngay_hoc ?? "", hien_thi: b.hien_thi,
           ngay_mo: toVNInput(b.ngay_mo), ngayMoDep: b.ngay_mo ? fmtShort(b.ngay_mo) : "", henTuongLai: !!b.ngay_mo && new Date(b.ngay_mo) > new Date(),
           da_day: b.da_day, ghi_chu: b.ghi_chu ?? "", noiBat: !!b.loai_id && nb.has(b.loai_id), banNhap: b.ban_nhap,

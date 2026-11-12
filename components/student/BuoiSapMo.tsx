@@ -1,6 +1,5 @@
 import { Lock } from "lucide-react";
 import { tenBuoi } from "@/lib/domain/naming";
-import { fmtDate } from "@/lib/domain/time";
 
 export interface BuoiKhoa { lesson_id: string; nhan_buoi: string; tieu_de: string; ngay_hoc: string | null }
 
@@ -15,7 +14,7 @@ export function BuoiSapMo({ ds, gon = false }: { ds: BuoiKhoa[]; gon?: boolean }
           <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-200 text-slate-500"><Lock className="h-5 w-5" /></span>
           <div className="hang-chu">
             <p className="font-semibold text-slate-600">{tenBuoi(b.nhan_buoi, b.tieu_de)}</p>
-            <p className="text-sm text-slate-500">{b.ngay_hoc ? `Ngày học: ${fmtDate(b.ngay_hoc)} · ` : ""}Thầy sẽ mở khi đến buổi học 🔒</p>
+            <p className="text-sm text-slate-500">Thầy sẽ mở khi lớp học tới buổi này 🔒</p>
           </div>
         </div>
       ))}

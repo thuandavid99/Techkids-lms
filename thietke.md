@@ -16,6 +16,7 @@
 | Mục | Giá trị |
 |---|---|
 | Chủ dự án | **Trương Công Thuận** — `truongdavid19999@gmail.com` (giáo viên, quản trị) |
+| Tên miền | **https://techkids.asia** (mua ở Hostinger; DNS: bản ghi A `@` → `216.198.79.1` theo Vercel, TTL 3600; vẫn chạy song song `techkids-nine.vercel.app`) — ✅ Valid 12/11 |
 | Thư mục trên máy | `D:\python-lms` (Windows, VS Code, Node cài ở `D:\`, npm 12) |
 | Thương hiệu đang dùng | **TechKids Academy** (theo bộ mockup) — đổi ở `lib/brand.ts`; hình ở `public/images/` (cắt từ mockup) |
 | Công nghệ | Next.js 16 (App Router, `proxy.ts` thay middleware) + TypeScript + Tailwind 4 + Supabase (Postgres/Auth/Storage/RLS, vùng **Singapore**) → GitHub (kho riêng tư) → Vercel |
@@ -170,8 +171,23 @@ Kiểm tra tự động 47 trang × 5 cỡ màn (360, 390, 768, 1024, 1440 px) b
 5. **Dọn hình:** bỏ thẻ "TechKids Academy" lặp ở cuối mọi trang, bỏ robot ở trang GV (Học sinh, Lớp, Báo cáo) và robot laptop ở trang buổi học / xem thử; mỗi trang HS tối đa 1 hình. **Soạn bài tập gọn:** chỉ hiện Mã, Tên, Đề, Loại nộp, Điểm tối đa, Số bài; Hệ số, Học kỳ, 5 ô tích nằm trong **"Tùy chọn nâng cao"** (gập, có dòng tóm tắt).
 **Đã kiểm:** SQL 001→007 trên PostgreSQL 16: **28/28** RLS; **80/80** kiểm thử logic (thêm `viec-can-lam`); 49 trang × 5 cỡ màn: 0 trang cuộn ngang; không lỗi kiểu mới.
 
+## 7e. Bảo mật (12/11) — **cần chạy `supabase/008_khoa_ham.sql`**
+- Security Advisor của Supabase: 0 Errors, 55 Warnings = "Public Can Execute SECURITY DEFINER Function" (anon gọi được hàm) + "Function Search Path Mutable" (song). File 008 bỏ quyền chạy hàm của `public`/`anon` cho mọi hàm schema public (authenticated giữ nguyên quyền cũ, `hs_nop_bai` vẫn chỉ service_role), đặt `search_path` cho `song()`, chừa `song()` cho anon; đổi default privileges. Test 27 trong `rls_test.sql` (29/29 đạt). Cảnh báo "Signed-in users can execute SECURITY DEFINER" (nếu còn) là CHỦ Ý — web gọi các hàm này sau khi đăng nhập, hàm tự kiểm tra quyền.
+- `next.config.ts`: thêm header `Strict-Transport-Security: max-age=63072000` (không `includeSubDomains`).
+- Đã hướng dẫn thầy: 2FA cho Gmail/GitHub/Vercel/Supabase/Hostinger; tắt "Allow new users to sign up" (mọi tài khoản tạo bằng admin API); kho GitHub Private + Dependabot; sao lưu Excel hằng tuần; UptimeRobot (tùy chọn, canh `/api/song` từ khóa `"ok":true`).
+- Hạn mức miễn phí cần để ý: Supabase egress 5 GB/tháng (chạm đầu tiên), DB 500 MB (vượt → chỉ đọc); Vercel Hobby 4 giờ CPU, 1 triệu request; Vercel Hobby chỉ cho phi thương mại.
+
+## 7f. Tiến độ lớp theo nút "Xong buổi này" — KHÔNG tính theo ngày (12/11, thầy chốt)
+Lý do: lớp chậm có buổi học 2 tiết, lớp nghỉ… → tính theo ngày sai. Không cần SQL mới (dùng cột có sẵn `class_lessons.da_day`, `hien_thi`).
+- **Quy tắc** (`lib/domain/mo-buoi.ts` → `tienDoLop`, `nhomTienDo`): Đã học = `da_day`; Đang học = buổi đầu tiên chưa `da_day` (theo thứ tự chương trình, bỏ bản nháp); Chưa học = phần sau. Mở/khóa (`hien_thi`) là quyết định riêng của thầy cho TỪNG buổi, kể cả buổi đã học.
+- **Action** (`lib/actions/gv/lop.ts`): `xongBuoi` (buổi đang học → đã học; buổi kế → mở cho HS), `quayLaiBuoi` (bỏ đã học buổi gần nhất, giữ mở/khóa), `datDangHoc` (lớp áp dụng giữa chừng: buổi trước → đã học + mở nếu mới đánh dấu; buổi chọn → đang học + mở), `khoaBuoiChuaDay` (khóa các buổi sau buổi đang học). Lớp còn chế độ `theo_lich` tự chuyển về `thu_cong` (khi mở Tổng quan / khi bấm các nút trên).
+- **Giao diện:** thẻ lớp ở Tổng quan = "Đã học x/y buổi · HS xem được n" + 📍 Đang học (công tắc mở/khóa) + nút **Xong buổi này → sang Buổi …** + Quay lại + Buổi tiếp theo (mở sớm); lớp mới → ô "Lớp đang học tới buổi nào?"; ⚙ = đổi buổi đang học, khóa các buổi chưa học. Trang Lịch: ✅ Đã học (gập) / 📍 Đang học (+ nút) / 🔒 Chưa học (3) / Các buổi sau (gập); menu ⋯ "Lớp đang học tới buổi này", "Lớp nghỉ — lùi ngày dự kiến"; ngày học = tham khảo. Bỏ con số "8/47" (đếm theo tên buổi) → mọi nơi "Đã học x/y" đếm theo dòng.
+- **Phía HS:** `hanhTrinh`/`trangThaiBuoi` không còn dùng ngày (buổi không có bài: xong khi `da_day`, chưa thì "Đang học"); "Hôm nay em cần làm" mục đầu = **buổi lớp đang học** (buổi mở đầu tiên chưa `da_day`); buổi khóa hiện "Thầy sẽ mở khi lớp học tới buổi này 🔒".
+- **Avatar nữ:** `public/images/avatar-nu.svg` (vẽ tay cùng phong cách avatar nam), mã `nu` trong `DS_AVATAR` (`components/ui/Misc.tsx`).
+**Đã kiểm:** 79/79 kiểm thử logic (viết lại `tests/mo-buoi.test.ts`); 49 trang × 5 cỡ màn 0 cuộn ngang.
+
 ## 8. VIỆC TIẾP THEO CHO CLAUDE (thứ tự ưu tiên)
-0. **8.0** Thầy chạy `007_ca_nhan_hoa.sql` (sau 006), chép mã mới, `npm run build`; nhập lại PPCT bằng file thật (bật "Đánh số lại"), đặt biến `SITE_URL` cho GitHub Actions. Nhận lỗi build (nếu có) → sửa.
+0. **8.0** Thầy chạy `008_khoa_ham.sql` (007 đã chạy), chạy lại Security Advisor; chép mã mới, `npm run build`; nhập lại PPCT bằng file thật (bật "Đánh số lại"), đặt biến `SITE_URL` cho GitHub Actions. Nhận lỗi build (nếu có) → sửa.
 1. **8.1** Nhận kết quả `npm run build` từ thầy → sửa lỗi build/type/lint cho sạch (lần build thật đầu tiên). Kiểm tra `npm test` (vitest thật).
 2. **8.2** Hỗ trợ chạy 005, đẩy GitHub/Vercel (vùng sin1); xử lý lỗi Build Logs.
 3. **8.3** Thử thật: `/giao-vien`, menu Giáo viên, nút ▶ Chạy (nếu Pyodide v0.28.0 lỗi tải → đổi `PYODIDE_URL`). Theo `docs/kiem-thu-thu-cong.md` mục H, I, J.
@@ -193,7 +209,7 @@ vercel.json        vùng chạy Singapore (sin1)
 lib/supabase/      server, browser, admin (server-only), env
 lib/actions/       server actions HS + gv/*
 lib/server/        đọc dữ liệu ở server
-supabase/          001_schema, 002_rls, 003_storage, 004_views_functions, 005_giao_vien_rieng, 006_mo_buoi_nhieu_bai, 007_ca_nhan_hoa, seed
+supabase/          001_schema, 002_rls, 003_storage, 004_views_functions, 005_giao_vien_rieng, 006_mo_buoi_nhieu_bai, 007_ca_nhan_hoa, 008_khoa_ham, seed
 tests/             *.test.ts + sql/rls_test.sql
 docs/              so-do-du-lieu, kiem-thu-thu-cong, doi-chieu-spec, mockups/
 ```
@@ -208,3 +224,6 @@ docs/              so-do-du-lieu, kiem-thu-thu-cong, doi-chieu-spec, mockups/
 - 12/11 chat 4: thầy chạy 006 + `npm run build` thành công lần đầu.
 - 12/11 chat 4: Tổng quan GV gọn lại theo cách A (công tắc mở buổi nằm trong thẻ lớp, nút ⚙). PPCT thật CHƯA nhập vào web (lớp TK1/TK2 đang dùng chương trình mẫu).
 - 12/11 chat 4 (vòng 3): lịch học thông minh; menu GV 6 mục + 1 ô chọn lớp + tab trong lớp; Cài đặt có tab; cá nhân hóa từng HS (SQL `007_ca_nhan_hoa.sql`); phía HS: số liệu thống nhất x/y, "Hôm nay em cần làm", gộp Hồ sơ vào Tài khoản, lọc 1 hàng; dọn hình, rút gọn Soạn bài tập.
+- 12/11 chat 4: gắn tên miền `techkids.asia` (Hostinger → Vercel, A record 216.198.79.1). Cần đặt Supabase Site URL + biến GitHub `SITE_URL` = https://techkids.asia.
+- 12/11 chat 4: bảo mật — SQL `008_khoa_ham.sql` (khóa hàm với anon), header HSTS, danh sách việc bảo mật cho thầy.
+- 12/11 chat 4: tiến độ lớp theo nút "Xong buổi này" (bỏ tính theo ngày, bỏ chế độ tự mở theo lịch), "Đã học x/y" thống nhất; avatar nữ.

@@ -1,6 +1,5 @@
 // Trạng thái một BUỔI học đối với học sinh (pill ở danh sách buổi học / trang chủ)
 import { tinhTrangThai, type DongBaiTho, type MauPill } from "./status";
-import { vnDateKey } from "./time";
 
 /** Bài cần làm gần nhất: chưa nộp (hoặc cần nộp lại), không miễn, nộp trên web; hạn sớm nhất trước */
 export function baiCanLamGanNhat<T extends DongBaiTho & { loai_nop: string }>(rows: T[], now: Date = new Date()): T | null {
@@ -20,13 +19,12 @@ export function trangThaiBuoi(
   baiCuaBuoi: DongBaiTho[],
   now: Date = new Date(),
 ): TrangThaiBuoi {
-  const homNay = vnDateKey(now);
+  // Không tính theo ngày học: buổi không có bài bắt buộc thì "xong" khi lớp đã học xong buổi đó (thầy bấm "Xong buổi này")
   const kq = baiCuaBuoi.map((r) => tinhTrangThai(r, now)).filter((k) => k.tinhVaoHoanThanh);
-  const tuongLai = buoi.ngay_hoc !== null && buoi.ngay_hoc > homNay;
 
   if (kq.length === 0) {
-    if (buoi.da_day || (buoi.ngay_hoc !== null && !tuongLai)) return { text: "Đã hoàn thành", mau: "green", icon: "check", xong: true };
-    return { text: "Chưa đến hạn", mau: "gray", icon: "calendar", xong: false };
+    if (buoi.da_day) return { text: "Đã hoàn thành", mau: "green", icon: "check", xong: true };
+    return { text: "Đang học", mau: "blue", icon: "calendar", xong: false };
   }
   if (kq.every((k) => k.daNop)) {
     if (kq.some((k) => k.trangThai === "can_nop_lai")) return { text: "Cần nộp lại", mau: "orangeStrong", icon: "rotate", xong: true };
@@ -35,6 +33,5 @@ export function trangThaiBuoi(
   if (kq.some((k) => k.trangThai === "can_nop_lai")) return { text: "Cần nộp lại", mau: "orangeStrong", icon: "rotate", xong: false };
   if (kq.some((k) => k.denHanHomNay)) return { text: "Đến hạn hôm nay", mau: "blue", icon: "alarm", xong: false };
   if (kq.some((k) => k.nhanThoiGian === "khong_nop_bai")) return { text: "Quá hạn", mau: "red", icon: "x", xong: false };
-  if (tuongLai) return { text: "Chưa đến hạn", mau: "gray", icon: "calendar", xong: false };
   return { text: "Chưa làm", mau: "orange", icon: "fire", xong: false };
 }
